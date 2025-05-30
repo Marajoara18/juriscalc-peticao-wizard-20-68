@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
-import { Navigate, useLocation } from 'react-router-dom';
+// import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+// import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,9 +14,17 @@ const ProtectedRoute = ({
   requireAuth = true, 
   requireAdmin = false 
 }: ProtectedRouteProps) => {
-  const { user, profile, loading } = useSupabaseAuth();
-  const location = useLocation();
+  // const { user, profile, loading } = useSupabaseAuth();
+  // const location = useLocation();
 
+  console.log('[PROTECTED_ROUTE] Temporariamente desabilitado - permitindo acesso a todas as rotas');
+
+  // AUTENTICAÇÃO TEMPORARIAMENTE DESABILITADA
+  // Sempre renderiza os children sem verificações
+  return <>{children}</>;
+
+  /* CÓDIGO ORIGINAL COMENTADO PARA REATIVAÇÃO FUTURA:
+  
   console.log('[PROTECTED_ROUTE] Renderizando. Props:', {
     requireAuth,
     requireAdmin,
@@ -110,6 +118,7 @@ const ProtectedRoute = ({
 
   console.log('[PROTECTED_ROUTE] Acesso permitido, renderizando conteúdo');
   return <>{children}</>;
+  */
 };
 
 export default ProtectedRoute;

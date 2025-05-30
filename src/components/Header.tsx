@@ -7,13 +7,17 @@ import { useState, useEffect } from 'react';
 import SubscriptionManager from '@/components/peticoes/SubscriptionManager';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import ManualRapido from '@/components/calculadora/ManualRapido';
-import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+// import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isPremium, signOut } = useSupabaseAuth();
+  // const { user, isPremium, signOut } = useSupabaseAuth(); // TEMPORARIAMENTE COMENTADO
   const [showSubscription, setShowSubscription] = useState(false);
+  
+  // VALORES MOCKADOS PARA FUNCIONALIDADE TEMPORÁRIA
+  const user = null; // Simula usuário não logado
+  const isPremium = false; // Simula usuário não premium
   
   const handleNewPeticao = () => {
     console.log('Navigating to petições');
@@ -30,10 +34,10 @@ const Header = () => {
     navigate('/minha-conta');
   };
 
-  const handleLogout = async () => {
-    console.log('Attempting logout');
-    await signOut();
-  };
+  // const handleLogout = async () => {
+  //   console.log('Attempting logout');
+  //   await signOut();
+  // }; // TEMPORARIAMENTE COMENTADO
   
   return (
     <header className="bg-juriscalc-navy text-white shadow-md">
@@ -53,7 +57,7 @@ const Header = () => {
           <Link 
             to="/home" 
             className={`hover:text-juriscalc-gold transition-colors ${
-              location.pathname === '/home' ? 'text-juriscalc-gold' : ''
+              location.pathname === '/home' || location.pathname === '/' ? 'text-juriscalc-gold' : ''
             }`}
           >
             Home
@@ -74,28 +78,26 @@ const Header = () => {
           >
             Petições
           </Link>
-          {user?.email && (user.email === 'admin@juriscalc.com' || user.email === 'johnnysantos_177@msn.com') && (
-            <Link 
-              to="/admin" 
-              className={`hover:text-juriscalc-gold transition-colors ${
-                location.pathname === '/admin' ? 'text-juriscalc-gold' : ''
-              }`}
-            >
-              Admin
-            </Link>
-          )}
-          {!isPremium && (
-            <Button
-              onClick={() => {
-                console.log('Opening subscription modal');
-                setShowSubscription(true);
-              }}
-              className="bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90 flex items-center gap-1"
-            >
-              <Crown className="h-4 w-4" />
-              Premium
-            </Button>
-          )}
+          {/* LINK ADMIN SEMPRE VISÍVEL PARA TESTE */}
+          <Link 
+            to="/admin" 
+            className={`hover:text-juriscalc-gold transition-colors ${
+              location.pathname === '/admin' ? 'text-juriscalc-gold' : ''
+            }`}
+          >
+            Admin
+          </Link>
+          {/* BOTÃO PREMIUM SEMPRE VISÍVEL PARA TESTE */}
+          <Button
+            onClick={() => {
+              console.log('Opening subscription modal');
+              setShowSubscription(true);
+            }}
+            className="bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90 flex items-center gap-1"
+          >
+            <Crown className="h-4 w-4" />
+            Premium
+          </Button>
         </nav>
         
         <div className="flex items-center gap-2">
@@ -128,6 +130,7 @@ const Header = () => {
             <User className="mr-2 h-4 w-4" />
             Minha Conta
           </Button>
+          {/* BOTÃO SAIR TEMPORARIAMENTE REMOVIDO
           <Button 
             className="bg-red-600 text-white hover:bg-red-700"
             onClick={handleLogout}
@@ -135,6 +138,7 @@ const Header = () => {
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </Button>
+          */}
         </div>
       </div>
       
@@ -143,6 +147,49 @@ const Header = () => {
       )}
     </header>
   );
+
+  /* CÓDIGO ORIGINAL COMENTADO PARA REATIVAÇÃO FUTURA:
+  
+  const { user, isPremium, signOut } = useSupabaseAuth();
+  
+  const handleLogout = async () => {
+    console.log('Attempting logout');
+    await signOut();
+  };
+  
+  // Na navegação:
+  {user?.email && (user.email === 'admin@juriscalc.com' || user.email === 'johnnysantos_177@msn.com') && (
+    <Link 
+      to="/admin" 
+      className={`hover:text-juriscalc-gold transition-colors ${
+        location.pathname === '/admin' ? 'text-juriscalc-gold' : ''
+      }`}
+    >
+      Admin
+    </Link>
+  )}
+  {!isPremium && (
+    <Button
+      onClick={() => {
+        console.log('Opening subscription modal');
+        setShowSubscription(true);
+      }}
+      className="bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90 flex items-center gap-1"
+    >
+      <Crown className="h-4 w-4" />
+      Premium
+    </Button>
+  )}
+  
+  // No final dos botões:
+  <Button 
+    className="bg-red-600 text-white hover:bg-red-700"
+    onClick={handleLogout}
+  >
+    <LogOut className="mr-2 h-4 w-4" />
+    Sair
+  </Button>
+  */
 };
 
 export default Header;
