@@ -7,29 +7,33 @@ import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
-  const { user: supabaseUser, profile, signOut } = useSupabaseAuth();
+  const { user: supabaseUser, profile, signOut, loading } = useSupabaseAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
   const [isLoggedInAsUser, setIsLoggedInAsUser] = useState(false);
 
-  console.log('[USER_MANAGEMENT] Hook inicializado. Supabase user:', !!supabaseUser, 'Profile:', !!profile);
+  console.log('[USER_MANAGEMENT] Hook inicializado. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading);
 
   useEffect(() => {
     console.log('[USER_MANAGEMENT] useEffect - verificando autenticação');
-    console.log('[USER_MANAGEMENT] supabaseUser:', !!supabaseUser, 'profile:', !!profile);
+    console.log('[USER_MANAGEMENT] supabaseUser:', !!supabaseUser, 'profile:', !!profile, 'loading:', loading);
     
-    if (!supabaseUser || !profile) {
-      console.log('[USER_MANAGEMENT] Usuário não autenticado, redirecionando');
+    // Só redireciona se não estiver carregando E realmente não houver usuário
+    if (!loading && !supabaseUser) {
+      console.log('[USER_MANAGEMENT] Usuário não autenticado após carregamento, redirecionando');
       navigate('/');
       return;
     }
 
-    console.log('[USER_MANAGEMENT] Usuário autenticado, carregando dados');
-    loadUserData();
-    loadAllUsers();
-  }, [supabaseUser, profile, navigate]);
+    // Só carrega dados se tiver usuário e perfil
+    if (supabaseUser && profile) {
+      console.log('[USER_MANAGEMENT] Usuário autenticado, carregando dados');
+      loadUserData();
+      loadAllUsers();
+    }
+  }, [supabaseUser, profile, loading, navigate]);
 
   const loadUserData = () => {
     console.log('[USER_MANAGEMENT] Carregando dados do usuário');
