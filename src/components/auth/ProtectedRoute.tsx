@@ -17,7 +17,23 @@ const ProtectedRoute = ({
   const { user, profile, loading } = useSupabaseAuth();
   const location = useLocation();
 
-  console.log('PROTECTED_ROUTE: Verificação de acesso:', {
+  console.log('[PROTECTED_ROUTE] Renderizando. Props:', {
+    requireAuth,
+    requireAdmin,
+    path: location.pathname
+  });
+  
+  console.log('[PROTECTED_ROUTE] Auth state:', {
+    user: !!user,
+    userId: user?.id,
+    userEmail: user?.email,
+    profile: !!profile,
+    planId: profile?.plano_id,
+    loading,
+    timestamp: new Date().toISOString()
+  });
+
+  console.log('[PROTECTED_ROUTE] Verificação de acesso:', {
     path: location.pathname,
     user: !!user,
     userId: user?.id,
@@ -32,7 +48,7 @@ const ProtectedRoute = ({
 
   // Show loading spinner while checking authentication
   if (loading) {
-    console.log('PROTECTED_ROUTE: Ainda carregando autenticação...');
+    console.log('[PROTECTED_ROUTE] Ainda carregando autenticação...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
         <div className="text-center text-white">
@@ -46,13 +62,13 @@ const ProtectedRoute = ({
 
   // Redirect to login if authentication is required but user is not authenticated
   if (requireAuth && !user) {
-    console.log('PROTECTED_ROUTE: Usuário não autenticado, redirecionando para /');
+    console.error('[PROTECTED_ROUTE] REDIRECIONANDO PARA LOGIN! User:', user, 'Loading:', loading, 'Path:', location.pathname);
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // Se o usuário está autenticado mas não tem perfil, mostrar mensagem amigável
   if (requireAuth && user && !profile) {
-    console.log('PROTECTED_ROUTE: Usuário autenticado mas sem perfil');
+    console.log('[PROTECTED_ROUTE] Usuário autenticado mas sem perfil');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
         <div className="text-center text-white max-w-md mx-auto px-4">
@@ -80,19 +96,19 @@ const ProtectedRoute = ({
   if (requireAdmin && profile) {
     const isAdmin = profile.plano_id === 'admin' || profile.plano_id === 'premium';
     
-    console.log('PROTECTED_ROUTE: Verificação de admin:', {
+    console.log('[PROTECTED_ROUTE] Verificação de admin:', {
       planId: profile.plano_id,
       isAdmin,
       requireAdmin
     });
     
     if (!isAdmin) {
-      console.log('PROTECTED_ROUTE: Usuário não é admin, redirecionando para /home. Plano atual:', profile.plano_id);
+      console.log('[PROTECTED_ROUTE] Usuário não é admin, redirecionando para /home. Plano atual:', profile.plano_id);
       return <Navigate to="/home" replace />;
     }
   }
 
-  console.log('PROTECTED_ROUTE: Acesso permitido, renderizando conteúdo');
+  console.log('[PROTECTED_ROUTE] Acesso permitido, renderizando conteúdo');
   return <>{children}</>;
 };
 

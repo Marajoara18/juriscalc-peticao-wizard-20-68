@@ -1,15 +1,41 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import Layout from '@/components/Layout';
 import UserManagement from '@/components/auth/UserManagement';
 import MasterPasswordReset from '@/components/auth/MasterPasswordReset';
 
 const UserAccountView = () => {
   const navigate = useNavigate();
+  const { user, profile, loading } = useSupabaseAuth();
+
+  console.log('[USER_ACCOUNT_VIEW] Iniciando renderização.');
+  console.log('[USER_ACCOUNT_VIEW] Auth state:', {
+    user: !!user,
+    profile: !!profile,
+    loading
+  });
+
+  useEffect(() => {
+    console.log('[USER_ACCOUNT_VIEW] Componente montado.');
+    
+    return () => {
+      console.log('[USER_ACCOUNT_VIEW] Desmontando.');
+    };
+  }, []);
+
+  useEffect(() => {
+    console.log('[USER_ACCOUNT_VIEW] Estado de auth mudou:', {
+      user: !!user,
+      profile: !!profile,
+      loading
+    });
+  }, [user, profile, loading]);
 
   const handleVoltar = () => {
+    console.log('[USER_ACCOUNT_VIEW] Voltando para /home');
     navigate('/home');
   };
 
