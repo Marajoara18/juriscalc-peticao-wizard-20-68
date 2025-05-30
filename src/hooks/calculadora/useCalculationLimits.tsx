@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
-const LIMITE_CALCULOS_GRATUITOS = 3; // Limite correto de 3 cálculos
+const LIMITE_CALCULOS_GRATUITOS = 3;
 const KEY_CONTADOR_CALCULOS = 'calculosRealizados';
 
 export const useCalculationLimits = () => {
@@ -18,52 +19,41 @@ export const useCalculationLimits = () => {
   // Verificar número de cálculos realizados pelo usuário
   useEffect(() => {
     if (!user) {
-      console.log('LIMITS: No user authenticated');
+      console.log('CALCULATION_LIMITS: No user authenticated');
       setPodeCalcular(false);
       return;
     }
 
     const userId = user.id;
     
-    // Verificar o contador de cálculos do usuário atual
+    // Verificar número de cálculos realizados
     const calculosKey = `${KEY_CONTADOR_CALCULOS}_${userId}`;
     const calculosRealizados = localStorage.getItem(calculosKey) 
       ? parseInt(localStorage.getItem(calculosKey) || '0', 10) 
       : 0;
     
-    // Verificar se o usuário é premium (via Supabase profile ou localStorage)
-    const isPremiumProfile = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'admin';
+    // Usar a função centralizada para verificar acesso ilimitado
+    const hasUnlimited = hasUnlimitedAccess(profile, user.email);
     
-    // Verificar acesso premium via localStorage (definido pelo admin)
-    const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
-    const currentUser = allUsers.find((u: any) => u.email === user.email);
-    const isPremiumLocalStorage = currentUser?.isPremium || currentUser?.isAdmin;
-    
-    // Usuário tem premium se tiver via profile OU via localStorage
-    const isPremium = isPremiumProfile || isPremiumLocalStorage;
-    
-    console.log('LIMITS: Calculation limits check:', {
+    console.log('CALCULATION_LIMITS: Verificação de limites:', {
       userId,
       userEmail: user.email,
       calculosRealizados,
-      isPremiumProfile,
-      isPremiumLocalStorage,
-      isPremium,
-      limite: LIMITE_CALCULOS_GRATUITOS,
+      hasUnlimited,
       planId: profile?.plano_id,
-      remainingCalculations: isPremium ? 'unlimited' : Math.max(0, LIMITE_CALCULOS_GRATUITOS - calculosRealizados)
+      remainingCalculations: hasUnlimited ? 'unlimited' : Math.max(0, LIMITE_CALCULOS_GRATUITOS - calculosRealizados)
     });
     
-    // Para usuários premium, sempre permitir calcular
-    if (isPremium) {
-      console.log('LIMITS: Premium user - unlimited calculations');
+    // Para usuários com acesso ilimitado, sempre permitir calcular
+    if (hasUnlimited) {
+      console.log('CALCULATION_LIMITS: Unlimited access - no calculation limits');
       setPodeCalcular(true);
       return;
     }
     
-    // Para usuários não premium, verificar limite de cálculos
+    // Para usuários sem acesso ilimitado, verificar limite de cálculos
     const podeCalcularNovo = calculosRealizados < LIMITE_CALCULOS_GRATUITOS;
-    console.log('LIMITS: Setting podeCalcular to:', podeCalcularNovo, 
+    console.log('CALCULATION_LIMITS: Setting podeCalcular to:', podeCalcularNovo, 
       `(${calculosRealizados}/${LIMITE_CALCULOS_GRATUITOS} used)`);
     setPodeCalcular(podeCalcularNovo);
   }, [user, profile]);
@@ -71,50 +61,40 @@ export const useCalculationLimits = () => {
   // Função para verificar e incrementar contador de cálculos
   const verificarLimiteCalculos = (originalCalc: () => void) => {
     if (!user) {
-      console.error('LIMITS: No user authenticated');
+      console.error('CALCULATION_LIMITS: No user authenticated');
       toast.error('Você precisa estar logado para realizar cálculos');
       return;
     }
 
     const userId = user.id;
     
-    // Verificar se o usuário é premium (via Supabase profile ou localStorage)
-    const isPremiumProfile = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'admin';
+    // Usar a função centralizada para verificar acesso ilimitado
+    const hasUnlimited = hasUnlimitedAccess(profile, user.email);
     
-    // Verificar acesso premium via localStorage (definido pelo admin)
-    const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
-    const currentUser = allUsers.find((u: any) => u.email === user.email);
-    const isPremiumLocalStorage = currentUser?.isPremium || currentUser?.isAdmin;
-    
-    // Usuário tem premium se tiver via profile OU via localStorage
-    const isPremium = isPremiumProfile || isPremiumLocalStorage;
-    
-    console.log('LIMITS: Checking calculation limits before execution:', { 
+    console.log('CALCULATION_LIMITS: Verificando limites antes da execução:', { 
       userId, 
       userEmail: user.email,
-      isPremiumProfile,
-      isPremiumLocalStorage,
-      isPremium,
+      hasUnlimited,
       planId: profile?.plano_id
     });
     
-    // Para usuários premium, não há limitação
-    if (isPremium) {
-      console.log('LIMITS: Premium user - executing calculation without limits');
+    // Para usuários com acesso ilimitado, não há limitação
+    if (hasUnlimited) {
+      console.log('CALCULATION_LIMITS: Unlimited access - executing calculation without limits');
       return originalCalc();
     }
     
-    // Para usuários não premium, verificar e incrementar contador
+    // Para usuários sem acesso ilimitado, verificar e incrementar contador
     const calculosKey = `${KEY_CONTADOR_CALCULOS}_${userId}`;
     const calculosRealizados = localStorage.getItem(calculosKey) 
       ? parseInt(localStorage.getItem(calculosKey) || '0', 10) 
       : 0;
     
-    console.log('LIMITS: Current calculations count:', calculosRealizados, 'of', LIMITE_CALCULOS_GRATUITOS);
+    console.log('CALCULATION_LIMITS: Current calculations count:', calculosRealizados, 'of', LIMITE_CALCULOS_GRATUITOS);
     
     // Se atingiu o limite, mostrar modal de assinatura
     if (calculosRealizados >= LIMITE_CALCULOS_GRATUITOS) {
-      console.log('LIMITS: Calculation limit reached - showing subscription modal');
+      console.log('CALCULATION_LIMITS: Calculation limit reached - showing subscription modal');
       toast.error(`Você atingiu o limite de ${LIMITE_CALCULOS_GRATUITOS} cálculos gratuitos. Assine o plano premium para continuar.`);
       setShowSubscriptionModal(true);
       return;
@@ -123,12 +103,12 @@ export const useCalculationLimits = () => {
     // Incrementar contador e salvar
     const novoValor = calculosRealizados + 1;
     localStorage.setItem(calculosKey, novoValor.toString());
-    console.log('LIMITS: Updated calculation count to:', novoValor, 
+    console.log('CALCULATION_LIMITS: Updated calculation count to:', novoValor, 
       `(${LIMITE_CALCULOS_GRATUITOS - novoValor} calculations remaining)`);
     
     // Atualizar estado se necessário
     if (novoValor >= LIMITE_CALCULOS_GRATUITOS) {
-      console.log('LIMITS: Limit reached after this calculation');
+      console.log('CALCULATION_LIMITS: Limit reached after this calculation');
       setPodeCalcular(false);
     }
     

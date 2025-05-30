@@ -4,6 +4,7 @@ import Header from './Header';
 import Footer from './Footer';
 import PremiumSubscriptionButton from './PremiumSubscriptionButton';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,18 +20,10 @@ const Layout = ({ children }: LayoutProps) => {
       return;
     }
 
-    // Verificar acesso premium via Supabase profile
-    const isPremiumProfile = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'admin';
+    // Usar a função centralizada para verificar acesso ilimitado
+    const unlimitedAccess = hasUnlimitedAccess(profile, user.email);
     
-    // Verificar acesso premium via localStorage (definido pelo admin)
-    const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
-    const currentUser = allUsers.find((u: any) => u.email === user.email);
-    const isPremiumLocalStorage = currentUser?.isPremium || currentUser?.isAdmin;
-    
-    // Usuário tem premium se tiver via profile OU via localStorage
-    const hasAnyPremium = isPremiumProfile || isPremiumLocalStorage;
-    
-    setShowPremiumButton(!hasAnyPremium);
+    setShowPremiumButton(!unlimitedAccess);
   }, [user, profile]);
   
   return (

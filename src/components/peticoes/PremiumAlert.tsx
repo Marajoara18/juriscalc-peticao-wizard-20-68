@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import SubscriptionManager from './SubscriptionManager';
 import { AlertCircle } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
 const LIMITE_CALCULOS_GRATUITOS = 3;
 const KEY_CONTADOR_CALCULOS = 'calculosRealizados';
@@ -12,7 +13,7 @@ const PremiumAlert = () => {
   const { user, profile } = useSupabaseAuth();
   const [showSubscription, setShowSubscription] = useState(false);
   const [calculosRestantes, setCalculosRestantes] = useState<number>(LIMITE_CALCULOS_GRATUITOS);
-  const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [hasUnlimited, setHasUnlimited] = useState<boolean>(false);
   
   useEffect(() => {
     if (!user) {
@@ -22,33 +23,23 @@ const PremiumAlert = () => {
 
     const userId = user.id;
     
-    // Verificar acesso premium via Supabase profile
-    const isPremiumProfile = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'admin';
+    // Usar a função centralizada para verificar acesso ilimitado
+    const unlimitedAccess = hasUnlimitedAccess(profile, user.email);
     
-    // Verificar acesso premium via localStorage (definido pelo admin)
-    const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
-    const currentUser = allUsers.find((u: any) => u.email === user.email);
-    const isPremiumLocalStorage = currentUser?.isPremium || currentUser?.isAdmin;
-    
-    // Usuário tem premium se tiver via profile OU via localStorage
-    const hasAnyPremium = isPremiumProfile || isPremiumLocalStorage;
-    
-    console.log('PREMIUM_ALERT: Premium access check:', {
+    console.log('PREMIUM_ALERT: Access check:', {
       userId,
       userEmail: user.email,
-      isPremiumProfile,
-      isPremiumLocalStorage,
-      hasAnyPremium,
-      currentUser
+      unlimitedAccess,
+      planId: profile?.plano_id
     });
     
-    if (hasAnyPremium) {
-      setIsPremium(true);
+    if (unlimitedAccess) {
+      setHasUnlimited(true);
       localStorage.setItem('isPremium', 'true');
       return;
     }
     
-    // Calcular cálculos restantes para usuários não premium
+    // Calcular cálculos restantes para usuários sem acesso ilimitado
     const calculosKey = `${KEY_CONTADOR_CALCULOS}_${userId}`;
     const calculosRealizados = localStorage.getItem(calculosKey) 
       ? parseInt(localStorage.getItem(calculosKey) || '0', 10) 
@@ -56,12 +47,12 @@ const PremiumAlert = () => {
     
     const restantes = Math.max(0, LIMITE_CALCULOS_GRATUITOS - calculosRealizados);
     setCalculosRestantes(restantes);
-    setIsPremium(false);
+    setHasUnlimited(false);
     localStorage.setItem('isPremium', 'false');
   }, [user, profile]);
   
-  // Se for premium, não mostrar nenhum alerta
-  if (isPremium) {
+  // Se tem acesso ilimitado, não mostrar nenhum alerta
+  if (hasUnlimited) {
     return null;
   }
   

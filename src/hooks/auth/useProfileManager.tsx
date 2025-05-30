@@ -9,43 +9,27 @@ export const useProfileManager = () => {
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     console.log('[PROFILE_MANAGER] Buscando perfil para usuário:', userId);
     try {
-      // Usar a nova função segura para buscar perfil
-      const { data, error } = await supabase.rpc('get_current_user_profile');
+      // Busca direta simples para evitar recursão
+      const { data: profileData, error } = await supabase
+        .from('perfis')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
       if (error) {
-        console.error('[PROFILE_MANAGER] Erro ao buscar perfil via função:', error);
+        console.error('[PROFILE_MANAGER] Erro ao buscar perfil:', error);
         
-        // Fallback: tentar busca direta se a função falhar
-        console.log('[PROFILE_MANAGER] Tentando busca direta como fallback');
-        const { data: profileData, error: directError } = await supabase
-          .from('perfis')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (directError) {
-          console.error('[PROFILE_MANAGER] Erro na busca direta do perfil:', directError);
-          
-          // Se o perfil não existe, tentar criar um
-          if (directError.code === 'PGRST116') {
-            console.log('[PROFILE_MANAGER] Perfil não existe, tentando criar...');
-            return await createProfile(userId);
-          }
-          
-          return null;
+        // Se o perfil não existe, tentar criar um
+        if (error.code === 'PGRST116') {
+          console.log('[PROFILE_MANAGER] Perfil não existe, tentando criar...');
+          return await createProfile(userId);
         }
-
-        console.log('[PROFILE_MANAGER] Perfil encontrado via busca direta:', profileData);
-        return profileData;
+        
+        return null;
       }
 
-      if (data && data.length > 0) {
-        console.log('[PROFILE_MANAGER] Perfil encontrado via função:', data[0]);
-        return data[0];
-      }
-
-      console.log('[PROFILE_MANAGER] Nenhum perfil retornado, tentando criar...');
-      return await createProfile(userId);
+      console.log('[PROFILE_MANAGER] Perfil encontrado:', profileData);
+      return profileData;
     } catch (error) {
       console.error('[PROFILE_MANAGER] Erro inesperado ao buscar perfil:', error);
       return await createProfile(userId);
