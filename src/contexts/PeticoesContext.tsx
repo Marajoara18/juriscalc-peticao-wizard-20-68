@@ -11,6 +11,8 @@ interface PeticoesContextType {
   view: 'list' | 'editor' | 'new' | 'user';
   isPremium: boolean;
   isAdmin: boolean;
+  isViewingAsUser: boolean;
+  viewingBanner: string | null;
   setView: (view: 'list' | 'editor' | 'new' | 'user') => void;
   handleNovaPeticao: () => void;
   handleUseModelo: (id: number) => void;
@@ -19,6 +21,7 @@ interface PeticoesContextType {
   handleSavePeticao: (data: any) => void;
   handleUserClick: () => void;
   handleDeletePeticao: (id: number) => void;
+  handleStopViewingAs: () => void;
 }
 
 const PeticoesContext = createContext<PeticoesContextType | undefined>(undefined);
@@ -42,6 +45,10 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Derivar estados de premium e admin do perfil Supabase
   const isPremium = profile?.plano_id?.includes('premium') || profile?.plano_id === 'admin' || false;
   const isAdmin = profile?.plano_id === 'admin' || false;
+  
+  // Estados para funcionalidade de visualização como usuário (não implementada)
+  const isViewingAsUser = false;
+  const viewingBanner = null;
   
   // Carrega dados do localStorage apenas como fallback temporário
   useEffect(() => {
@@ -183,6 +190,11 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
+  const handleStopViewingAs = () => {
+    // Funcionalidade não implementada
+    toast.info('Funcionalidade não disponível');
+  };
+
   const value = {
     peticoesRecentes,
     selectedModeloId,
@@ -190,6 +202,8 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     view,
     isPremium,
     isAdmin,
+    isViewingAsUser,
+    viewingBanner,
     setView,
     handleNovaPeticao,
     handleUseModelo,
@@ -198,6 +212,7 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     handleSavePeticao,
     handleUserClick,
     handleDeletePeticao,
+    handleStopViewingAs,
   };
 
   return (

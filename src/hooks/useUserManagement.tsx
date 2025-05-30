@@ -3,14 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import { useSupabaseAuth } from './auth/useSupabaseAuth';
-
-interface UserData {
-  id: string;
-  nome: string;
-  email: string;
-  isAdmin?: boolean;
-  logoUrl?: string;
-}
+import { UserData } from '@/types/user';
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
@@ -36,7 +29,10 @@ export const useUserManagement = () => {
         id: user.id,
         nome: profile.nome_completo,
         email: user.email,
-        isAdmin
+        isAdmin,
+        logoUrl: undefined,
+        canViewPanels: isAdmin,
+        isPremium: profile.plano_id?.includes('premium') || isAdmin
       });
       
       // Se for admin, carregar todos os usuários (do localStorage como fallback)
