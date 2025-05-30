@@ -2,12 +2,19 @@
 import React from 'react';
 import Layout from '@/components/Layout';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
-import UserManagement from '@/components/admin/UserManagement';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield } from 'lucide-react';
+import AdminDashboard from '@/components/admin/AdminDashboard';
 
 const AdminPanel = () => {
-  const { isAdmin, loading } = useSupabaseAuth();
+  const { isAdmin, loading, profile } = useSupabaseAuth();
+
+  console.log('ADMIN_PANEL: Estado atual:', {
+    isAdmin,
+    loading,
+    planId: profile?.plano_id,
+    profile: !!profile
+  });
 
   if (loading) {
     return (
@@ -31,6 +38,10 @@ const AdminPanel = () => {
               </CardTitle>
               <CardDescription>
                 Você não tem permissão para acessar o painel administrativo.
+                <br />
+                Plano atual: {profile?.plano_id || 'Não definido'}
+                <br />
+                É necessário ter plano 'admin' para acessar esta área.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -41,18 +52,7 @@ const AdminPanel = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto py-10 px-4">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-juriscalc-navy mb-2">
-            Painel Administrativo
-          </h1>
-          <p className="text-gray-600">
-            Gerencie usuários e configurações do sistema
-          </p>
-        </div>
-        
-        <UserManagement />
-      </div>
+      <AdminDashboard />
     </Layout>
   );
 };

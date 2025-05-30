@@ -71,7 +71,7 @@ export const useSupabaseAuth = () => {
         // Fetch user profile
         const profileData = await fetchProfile(session.user.id);
         if (profileData) {
-          console.log('SUPABASE_AUTH: Perfil carregado com sucesso');
+          console.log('SUPABASE_AUTH: Perfil carregado com sucesso. Plano:', profileData.plano_id);
           setProfile(profileData);
         } else {
           console.log('SUPABASE_AUTH: Perfil não encontrado, usuário pode precisar completar cadastro');
@@ -108,7 +108,7 @@ export const useSupabaseAuth = () => {
         setTimeout(async () => {
           const profileData = await fetchProfile(session.user.id);
           if (profileData) {
-            console.log('SUPABASE_AUTH: Perfil carregado após login');
+            console.log('SUPABASE_AUTH: Perfil carregado após login. Plano:', profileData.plano_id);
             setProfile(profileData);
           }
         }, 100);
@@ -154,7 +154,7 @@ export const useSupabaseAuth = () => {
         const profileData = await fetchProfile(data.user.id);
         if (profileData) {
           setProfile(profileData);
-          console.log('SUPABASE_AUTH: Perfil definido, redirecionando para /home');
+          console.log('SUPABASE_AUTH: Perfil definido, redirecionando para /home. Plano:', profileData.plano_id);
           navigate('/home', { replace: true });
         } else {
           console.log('SUPABASE_AUTH: Perfil não encontrado, mas login foi bem-sucedido');
@@ -266,8 +266,8 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Derived states com logs
-  const isPremium = profile?.plano_id?.includes('premium') || false;
+  // Derived states com logs detalhados
+  const isPremium = profile?.plano_id?.includes('premium') || profile?.plano_id === 'admin' || false;
   const isAdmin = profile?.plano_id === 'admin' || false;
   
   console.log('SUPABASE_AUTH: Estado atual:', {
