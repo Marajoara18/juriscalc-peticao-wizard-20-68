@@ -1,63 +1,27 @@
 
 import React from 'react';
-// import SupabaseLoginContainer from '@/components/auth/SupabaseLoginContainer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
+import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 
 const SupabaseLogin = () => {
-  const navigate = useNavigate();
+  const { user, loading } = useSupabaseAuth();
   
+  // Redirect to auth page if not authenticated
+  if (!loading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  // Redirect to home if authenticated
+  if (!loading && user) {
+    return <Navigate to="/home" replace />;
+  }
+  
+  // Show loading while checking auth
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold flex items-center justify-center p-4"
-      style={{ 
-        backgroundImage: "url('/lovable-uploads/22902ab3-f207-4d33-9503-0fb6e29d3d05.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
-      }}
-    >
-      <div className="w-full max-w-md">
-        <Card className="bg-white/95 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <AlertTriangle className="h-12 w-12 text-yellow-500" />
-            </div>
-            <CardTitle className="text-xl">Autenticação Temporariamente Desabilitada</CardTitle>
-            <CardDescription>
-              O sistema de login está temporariamente desabilitado para testes. 
-              Você pode acessar todas as funcionalidades diretamente.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              onClick={() => navigate('/home')}
-              className="w-full bg-juriscalc-navy hover:bg-juriscalc-blue"
-            >
-              Ir para a Página Principal
-            </Button>
-            <Button 
-              onClick={() => navigate('/calculadora')}
-              variant="outline"
-              className="w-full border-juriscalc-navy text-juriscalc-navy"
-            >
-              Ir para Calculadora
-            </Button>
-            <Button 
-              onClick={() => navigate('/peticoes')}
-              variant="outline"
-              className="w-full border-juriscalc-navy text-juriscalc-navy"
-            >
-              Ir para Petições
-            </Button>
-          </CardContent>
-        </Card>
-        
-        {/* COMPONENTE ORIGINAL COMENTADO PARA REATIVAÇÃO FUTURA:
-        <SupabaseLoginContainer />
-        */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
+      <div className="text-center text-white">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto mb-4"></div>
+        <p className="text-lg font-medium">Verificando autenticação...</p>
       </div>
     </div>
   );

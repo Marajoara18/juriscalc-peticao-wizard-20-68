@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { StrictMode } from "react";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import SupabaseLogin from "./pages/SupabaseLogin";
+import AuthPage from "./pages/AuthPage";
 import AdminPanel from "./pages/AdminPanel";
 import Calculadora from "./pages/Calculadora";
 import Peticoes from "./pages/Peticoes";
@@ -30,21 +30,19 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* AUTENTICAÇÃO TEMPORARIAMENTE DESABILITADA - ROTA PRINCIPAL AGORA É HOME */}
-              <Route path="/" element={<Index />} />
-              
-              {/* Login routes (temporariamente acessíveis mas não são entrada principal) */}
-              <Route path="/login" element={<SupabaseLogin />} />
+              {/* Public routes */}
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+              <Route path="/auth" element={<AuthPage />} />
               <Route path="/login-old" element={<Login />} />
               <Route path="/esqueci-senha" element={<PasswordResetRequest />} />
               <Route path="/reset-senha" element={<PasswordReset />} />
               <Route path="/reset-password" element={<MasterPasswordReset />} />
               
-              {/* Protected routes - TEMPORARIAMENTE SEM PROTEÇÃO */}
+              {/* Protected routes - require authentication */}
               <Route 
                 path="/home" 
                 element={
-                  <ProtectedRoute requireAuth={false}>
+                  <ProtectedRoute requireAuth={true}>
                     <Index />
                   </ProtectedRoute>
                 } 
@@ -52,7 +50,7 @@ const App = () => {
               <Route 
                 path="/calculadora" 
                 element={
-                  <ProtectedRoute requireAuth={false}>
+                  <ProtectedRoute requireAuth={true}>
                     <Calculadora />
                   </ProtectedRoute>
                 } 
@@ -60,27 +58,27 @@ const App = () => {
               <Route 
                 path="/peticoes" 
                 element={
-                  <ProtectedRoute requireAuth={false}>
+                  <ProtectedRoute requireAuth={true}>
                     <Peticoes />
                   </ProtectedRoute>
                 } 
               />
               
-              {/* Rota dedicada para Minha Conta - TEMPORARIAMENTE SEM PROTEÇÃO */}
+              {/* Rota dedicada para Minha Conta */}
               <Route 
                 path="/minha-conta" 
                 element={
-                  <ProtectedRoute requireAuth={false}>
+                  <ProtectedRoute requireAuth={true}>
                     <MinhaContaPage />
                   </ProtectedRoute>
                 } 
               />
               
-              {/* Admin routes - TEMPORARIAMENTE SEM PROTEÇÃO */}
+              {/* Admin routes - require authentication and admin role */}
               <Route 
                 path="/admin" 
                 element={
-                  <ProtectedRoute requireAuth={false} requireAdmin={false}>
+                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
                     <AdminPanel />
                   </ProtectedRoute>
                 } 
@@ -97,82 +95,6 @@ const App = () => {
       </QueryClientProvider>
     </StrictMode>
   );
-
-  /* ROTEAMENTO ORIGINAL COMENTADO PARA REATIVAÇÃO FUTURA:
-  
-  return (
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes *}
-              <Route path="/" element={<SupabaseLogin />} />
-              <Route path="/login-old" element={<Login />} />
-              <Route path="/esqueci-senha" element={<PasswordResetRequest />} />
-              <Route path="/reset-senha" element={<PasswordReset />} />
-              <Route path="/reset-password" element={<MasterPasswordReset />} />
-              
-              {/* Protected routes - require authentication *}
-              <Route 
-                path="/home" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/calculadora" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Calculadora />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/peticoes" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Peticoes />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Rota dedicada para Minha Conta *}
-              <Route 
-                path="/minha-conta" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <MinhaContaPage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Admin routes - require authentication and admin role *}
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                    <AdminPanel />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Redirects for common paths *}
-              <Route path="/index" element={<Navigate to="/home" replace />} />
-              
-              {/* Catch all other routes - must be last *}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </StrictMode>
-  );
-  */
 };
 
 export default App;

@@ -1,7 +1,7 @@
 
 import React from 'react';
-// import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
-// import { Navigate, useLocation } from 'react-router-dom';
+import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,32 +14,8 @@ const ProtectedRoute = ({
   requireAuth = true, 
   requireAdmin = false 
 }: ProtectedRouteProps) => {
-  // const { user, profile, loading } = useSupabaseAuth();
-  // const location = useLocation();
-
-  console.log('[PROTECTED_ROUTE] Temporariamente desabilitado - permitindo acesso a todas as rotas');
-
-  // AUTENTICAÇÃO TEMPORARIAMENTE DESABILITADA
-  // Sempre renderiza os children sem verificações
-  return <>{children}</>;
-
-  /* CÓDIGO ORIGINAL COMENTADO PARA REATIVAÇÃO FUTURA:
-  
-  console.log('[PROTECTED_ROUTE] Renderizando. Props:', {
-    requireAuth,
-    requireAdmin,
-    path: location.pathname
-  });
-  
-  console.log('[PROTECTED_ROUTE] Auth state:', {
-    user: !!user,
-    userId: user?.id,
-    userEmail: user?.email,
-    profile: !!profile,
-    planId: profile?.plano_id,
-    loading,
-    timestamp: new Date().toISOString()
-  });
+  const { user, profile, loading } = useSupabaseAuth();
+  const location = useLocation();
 
   console.log('[PROTECTED_ROUTE] Verificação de acesso:', {
     path: location.pathname,
@@ -71,7 +47,7 @@ const ProtectedRoute = ({
   // Redirect to login if authentication is required but user is not authenticated
   if (requireAuth && !user) {
     console.error('[PROTECTED_ROUTE] REDIRECIONANDO PARA LOGIN! User:', user, 'Loading:', loading, 'Path:', location.pathname);
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // Se o usuário está autenticado mas não tem perfil, mostrar mensagem amigável
@@ -100,7 +76,7 @@ const ProtectedRoute = ({
     );
   }
 
-  // Verificação de admin corrigida - agora verifica tanto 'admin' quanto 'premium' para acesso admin
+  // Verificação de admin - agora verifica tanto 'admin' quanto 'premium' para acesso admin
   if (requireAdmin && profile) {
     const isAdmin = profile.plano_id === 'admin' || profile.plano_id === 'premium';
     
@@ -118,7 +94,6 @@ const ProtectedRoute = ({
 
   console.log('[PROTECTED_ROUTE] Acesso permitido, renderizando conteúdo');
   return <>{children}</>;
-  */
 };
 
 export default ProtectedRoute;
