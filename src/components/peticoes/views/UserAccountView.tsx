@@ -1,13 +1,17 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import UserManagement from '@/components/auth/UserManagement';
 import MasterPasswordReset from '@/components/auth/MasterPasswordReset';
-import { usePeticoes } from '@/contexts/PeticoesContext';
 
 const UserAccountView = () => {
-  const { handleVoltar } = usePeticoes();
+  const navigate = useNavigate();
+
+  const handleVoltar = () => {
+    navigate('/home');
+  };
 
   return (
     <Layout>

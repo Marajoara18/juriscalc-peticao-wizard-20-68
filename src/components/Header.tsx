@@ -26,9 +26,8 @@ const Header = () => {
   };
   
   const handleUserClick = () => {
-    console.log('Navigating to user account');
-    // Navigate to the user account view in peticoes with the correct state parameter
-    navigate('/peticoes', { state: { initialView: 'user' } });
+    console.log('Navigating to minha conta');
+    navigate('/minha-conta');
   };
 
   const handleLogout = async () => {
