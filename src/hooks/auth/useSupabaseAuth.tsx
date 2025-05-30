@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -30,24 +29,80 @@ export const useSupabaseAuth = () => {
   const fetchProfile = useCallback(async (userId: string) => {
     console.log('SUPABASE_AUTH: Buscando perfil para usuário:', userId);
     try {
+      // Usar a nova função segura para buscar perfil
+      const { data, error } = await supabase.rpc('get_current_user_profile');
+
+      if (error) {
+        console.error('SUPABASE_AUTH: Erro ao buscar perfil via função:', error);
+        
+        // Fallback: tentar busca direta se a função falhar
+        const { data: profileData, error: directError } = await supabase
+          .from('perfis')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        if (directError) {
+          console.error('SUPABASE_AUTH: Erro na busca direta do perfil:', directError);
+          
+          // Se o perfil não existe, tentar criar um
+          if (directError.code === 'PGRST116') {
+            console.log('SUPABASE_AUTH: Perfil não existe, tentando criar...');
+            return await createProfile(userId);
+          }
+          
+          return null;
+        }
+
+        console.log('SUPABASE_AUTH: Perfil encontrado via busca direta:', profileData);
+        return profileData;
+      }
+
+      if (data && data.length > 0) {
+        console.log('SUPABASE_AUTH: Perfil encontrado via função:', data[0]);
+        return data[0];
+      }
+
+      console.log('SUPABASE_AUTH: Nenhum perfil retornado, tentando criar...');
+      return await createProfile(userId);
+    } catch (error) {
+      console.error('SUPABASE_AUTH: Erro inesperado ao buscar perfil:', error);
+      return await createProfile(userId);
+    }
+  }, []);
+
+  const createProfile = async (userId: string) => {
+    console.log('SUPABASE_AUTH: Tentando criar perfil para usuário:', userId);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const email = userData.user?.email || '';
+      const nomeCompleto = userData.user?.user_metadata?.nome_completo || 
+                          userData.user?.user_metadata?.full_name || 
+                          email;
+
       const { data, error } = await supabase
         .from('perfis')
-        .select('*')
-        .eq('id', userId)
+        .insert({
+          id: userId,
+          nome_completo: nomeCompleto,
+          email: email,
+          plano_id: 'gratuito'
+        })
+        .select()
         .single();
 
       if (error) {
-        console.error('SUPABASE_AUTH: Erro ao buscar perfil:', error);
+        console.error('SUPABASE_AUTH: Erro ao criar perfil:', error);
         return null;
       }
 
-      console.log('SUPABASE_AUTH: Perfil encontrado:', data);
+      console.log('SUPABASE_AUTH: Perfil criado com sucesso:', data);
       return data;
     } catch (error) {
-      console.error('SUPABASE_AUTH: Erro inesperado ao buscar perfil:', error);
+      console.error('SUPABASE_AUTH: Erro inesperado ao criar perfil:', error);
       return null;
     }
-  }, []);
+  };
 
   const checkSession = useCallback(async () => {
     console.log('SUPABASE_AUTH: Verificando sessão...');
@@ -74,7 +129,7 @@ export const useSupabaseAuth = () => {
           console.log('SUPABASE_AUTH: Perfil carregado com sucesso. Plano:', profileData.plano_id);
           setProfile(profileData);
         } else {
-          console.log('SUPABASE_AUTH: Perfil não encontrado, usuário pode precisar completar cadastro');
+          console.log('SUPABASE_AUTH: Não foi possível carregar ou criar perfil');
         }
       } else {
         console.log('SUPABASE_AUTH: Nenhuma sessão ativa encontrada');
