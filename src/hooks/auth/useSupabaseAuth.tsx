@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -321,9 +322,9 @@ export const useSupabaseAuth = () => {
     }
   };
 
-  // Derived states com logs detalhados
-  const isPremium = profile?.plano_id?.includes('premium') || profile?.plano_id === 'admin' || false;
-  const isAdmin = profile?.plano_id === 'admin' || false;
+  // Derived states com logs detalhados - CORREÇÃO AQUI
+  const isPremium = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'premium' || profile?.plano_id === 'admin' || false;
+  const isAdmin = profile?.plano_id === 'admin' || profile?.plano_id === 'premium' || false; // CORRIGIDO: premium também tem acesso admin
   
   console.log('SUPABASE_AUTH: Estado atual:', {
     user: !!user,

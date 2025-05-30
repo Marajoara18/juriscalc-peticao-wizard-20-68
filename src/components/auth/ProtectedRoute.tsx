@@ -50,12 +50,6 @@ const ProtectedRoute = ({
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // Redirect to home if admin access is required but user is not admin
-  if (requireAdmin && (!profile || profile.plano_id !== 'admin')) {
-    console.log('PROTECTED_ROUTE: Usuário não é admin, redirecionando para /home. Plano atual:', profile?.plano_id);
-    return <Navigate to="/home" replace />;
-  }
-
   // Se o usuário está autenticado mas não tem perfil, mostrar mensagem amigável
   if (requireAuth && user && !profile) {
     console.log('PROTECTED_ROUTE: Usuário autenticado mas sem perfil');
@@ -80,6 +74,22 @@ const ProtectedRoute = ({
         </div>
       </div>
     );
+  }
+
+  // Verificação de admin corrigida - agora verifica tanto 'admin' quanto 'premium' para acesso admin
+  if (requireAdmin && profile) {
+    const isAdmin = profile.plano_id === 'admin' || profile.plano_id === 'premium';
+    
+    console.log('PROTECTED_ROUTE: Verificação de admin:', {
+      planId: profile.plano_id,
+      isAdmin,
+      requireAdmin
+    });
+    
+    if (!isAdmin) {
+      console.log('PROTECTED_ROUTE: Usuário não é admin, redirecionando para /home. Plano atual:', profile.plano_id);
+      return <Navigate to="/home" replace />;
+    }
   }
 
   console.log('PROTECTED_ROUTE: Acesso permitido, renderizando conteúdo');
