@@ -1,74 +1,63 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
-import { UserData } from '@/types/user';
+import { useSupabaseAuth } from './auth/useSupabaseAuth';
+
+interface UserData {
+  id: string;
+  nome: string;
+  email: string;
+  isAdmin?: boolean;
+  logoUrl?: string;
+}
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
+  const { user, profile, signOut } = useSupabaseAuth();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isMasterAdmin, setIsMasterAdmin] = useState(false);
-  const [isLoggedInAsUser, setIsLoggedInAsUser] = useState(false);
+  
+  // Derivar estados do perfil Supabase
+  const isAdmin = profile?.plano_id === 'admin' || false;
+  const isMasterAdmin = isAdmin; // No Supabase, admin é admin
+  const isLoggedInAsUser = false; // Funcionalidade removida por simplicidade
   
   useEffect(() => {
-    // Check if we're viewing as another user
-    const viewingAsUserId = localStorage.getItem('viewingAsUserId');
-    const viewingAsUserName = localStorage.getItem('viewingAsUserName');
-    const viewingAsUserEmail = localStorage.getItem('viewingAsUserEmail');
-    
-    if (viewingAsUserId && viewingAsUserName && viewingAsUserEmail) {
-      // Display alert that we're viewing as another user
-      toast.info(`Visualizando como ${viewingAsUserName}`, {
-        duration: 5000,
-        id: 'viewing-as-toast',
+    if (user && profile) {
+      console.log('USER_MANAGEMENT: Configurando dados do usuário do Supabase', {
+        userId: user.id,
+        email: user.email,
+        nome: profile.nome_completo,
+        plano: profile.plano_id
       });
-    }
-
-    // Check if admin is logged in as another user
-    const adminOriginalId = localStorage.getItem('adminOriginalId');
-    setIsLoggedInAsUser(!!adminOriginalId);
-    
-    // Load current user data
-    const userId = localStorage.getItem('userId');
-    const userEmail = localStorage.getItem('userEmail');
-    const userName = localStorage.getItem('userName');
-    const userIsAdmin = localStorage.getItem('userIsAdmin') === 'true';
-    const userLogoUrl = localStorage.getItem('userLogoUrl') || undefined;
-    
-    if (userId && userEmail) {
+      
       setUserData({
-        id: userId,
-        nome: userName || 'Usuário',
-        email: userEmail,
-        isAdmin: userIsAdmin,
-        logoUrl: userLogoUrl
+        id: user.id,
+        nome: profile.nome_completo,
+        email: user.email,
+        isAdmin
       });
-      setIsAdmin(userIsAdmin);
       
-      // Check if it's the master admin (admin-1 OR email admin@juriscalc.com)
-      const isMaster = userId === 'admin-1' || userEmail === 'admin@juriscalc.com' || userEmail === 'johnnysantos_177@msn.com';
-      setIsMasterAdmin(isMaster);
-      
-      // If admin, load all users
-      if (userIsAdmin) {
+      // Se for admin, carregar todos os usuários (do localStorage como fallback)
+      if (isAdmin) {
         loadAllUsers();
       }
-    } else {
-      // If no user is logged in, redirect to login
+    } else if (!user) {
+      console.log('USER_MANAGEMENT: Usuário não autenticado, redirecionando');
       navigate('/');
     }
-  }, [navigate]);
+  }, [user, profile, isAdmin, navigate]);
   
   const loadAllUsers = () => {
-    // Simulates loading users from localStorage (in a real app this would be from a database)
+    // Carregar usuários do localStorage como fallback
     const usersData = localStorage.getItem('allUsers');
     if (usersData) {
       try {
         const parsedUsers: UserData[] = JSON.parse(usersData);
         setAllUsers(parsedUsers);
       } catch (error) {
-        console.error('Erro ao carregar usuários:', error);
+        console.error('USER_MANAGEMENT: Erro ao carregar usuários:', error);
         setAllUsers([]);
       }
     } else {
@@ -76,56 +65,15 @@ export const useUserManagement = () => {
     }
   };
   
-  const handleLogout = () => {
-    // Check if admin is logged in as another user
-    if (isLoggedInAsUser) {
-      const adminId = localStorage.getItem('adminOriginalId');
-      const adminEmail = localStorage.getItem('adminOriginalEmail');
-      const adminName = localStorage.getItem('adminOriginalName');
-      
-      // Restore admin credentials
-      if (adminId && adminEmail) {
-        localStorage.setItem('userId', adminId);
-        localStorage.setItem('userEmail', adminEmail);
-        localStorage.setItem('userName', adminName || 'Administrador');
-        localStorage.setItem('userIsAdmin', 'true');
-        
-        // Clear temporary data
-        localStorage.removeItem('adminOriginalId');
-        localStorage.removeItem('adminOriginalEmail');
-        localStorage.removeItem('adminOriginalName');
-        
-        toast.success('Retornando à conta de administrador');
-        navigate('/peticoes');
-        return;
-      }
-    }
-    
-    // Clear view as another user data
-    localStorage.removeItem('viewingAsUserId');
-    localStorage.removeItem('viewingAsUserName');
-    localStorage.removeItem('viewingAsUserEmail');
-    localStorage.removeItem('originalUserId');
-    
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userIsAdmin');
-    localStorage.removeItem('userLogoUrl');
-    
-    // Clear admin logged in as another user data
-    localStorage.removeItem('adminOriginalId');
-    localStorage.removeItem('adminOriginalEmail');
-    localStorage.removeItem('adminOriginalName');
-    
-    toast.success('Logout realizado com sucesso!');
-    navigate('/');
+  const handleLogout = async () => {
+    console.log('USER_MANAGEMENT: Fazendo logout via Supabase');
+    await signOut();
   };
 
   const updateUserData = (updatedUser: UserData) => {
     setUserData(updatedUser);
     
-    // If admin, update user in the users list as well
+    // Se for admin, atualizar na lista também
     if (isAdmin) {
       const updatedUsers = allUsers.map(user => 
         user.id === updatedUser.id ? updatedUser : user
@@ -133,64 +81,24 @@ export const useUserManagement = () => {
       setAllUsers(updatedUsers);
       localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
     }
-    
-    // Update localStorage data if it's the current user
-    const userId = localStorage.getItem('userId');
-    if (userId === updatedUser.id) {
-      localStorage.setItem('userEmail', updatedUser.email);
-      localStorage.setItem('userName', updatedUser.nome);
-      localStorage.setItem('userLogoUrl', updatedUser.logoUrl || '');
-    }
   };
 
   const updateUsers = (updatedUsers: UserData[]) => {
     setAllUsers(updatedUsers);
     localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
     
-    // If the current user is in the updated list, update current user data
-    const userId = localStorage.getItem('userId');
-    const updatedCurrentUser = updatedUsers.find(user => user.id === userId);
-    
-    if (updatedCurrentUser) {
-      setUserData(updatedCurrentUser);
-      localStorage.setItem('userEmail', updatedCurrentUser.email);
-      localStorage.setItem('userName', updatedCurrentUser.nome);
-      localStorage.setItem('userLogoUrl', updatedCurrentUser.logoUrl || '');
-      
-      // Check if still admin
-      const stillAdmin = updatedCurrentUser.isAdmin;
-      setIsAdmin(stillAdmin);
-      localStorage.setItem('userIsAdmin', stillAdmin ? 'true' : 'false');
-      
-      // Check if still master admin
-      const isMaster = updatedCurrentUser.id === 'admin-1' || 
-                      updatedCurrentUser.email === 'admin@juriscalc.com' || 
-                      updatedCurrentUser.email === 'johnnysantos_177@msn.com';
-      setIsMasterAdmin(isMaster);
+    // Se o usuário atual está na lista atualizada, atualizar dados
+    if (user) {
+      const updatedCurrentUser = updatedUsers.find(u => u.id === user.id);
+      if (updatedCurrentUser) {
+        setUserData(updatedCurrentUser);
+      }
     }
   };
 
-  // Return to original admin account
   const handleReturnToAdmin = () => {
-    const adminId = localStorage.getItem('adminOriginalId');
-    const adminEmail = localStorage.getItem('adminOriginalEmail');
-    const adminName = localStorage.getItem('adminOriginalName');
-    
-    if (adminId && adminEmail) {
-      // Restore admin credentials
-      localStorage.setItem('userId', adminId);
-      localStorage.setItem('userEmail', adminEmail);
-      localStorage.setItem('userName', adminName || 'Administrador');
-      localStorage.setItem('userIsAdmin', 'true');
-      
-      // Clear temporary data
-      localStorage.removeItem('adminOriginalId');
-      localStorage.removeItem('adminOriginalEmail');
-      localStorage.removeItem('adminOriginalName');
-      
-      toast.success('Retornando à conta de administrador');
-      navigate('/peticoes');
-    }
+    // Funcionalidade removida por simplicidade
+    toast.info('Funcionalidade não disponível');
   };
   
   return {

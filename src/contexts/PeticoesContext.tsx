@@ -2,7 +2,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { initializeLocalStorage } from '@/utils/localStorage';
+import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 
 interface PeticoesContextType {
   peticoesRecentes: any[];
@@ -11,8 +11,6 @@ interface PeticoesContextType {
   view: 'list' | 'editor' | 'new' | 'user';
   isPremium: boolean;
   isAdmin: boolean;
-  isViewingAsUser: boolean;
-  viewingBanner: string | null;
   setView: (view: 'list' | 'editor' | 'new' | 'user') => void;
   handleNovaPeticao: () => void;
   handleUseModelo: (id: number) => void;
@@ -21,7 +19,6 @@ interface PeticoesContextType {
   handleSavePeticao: (data: any) => void;
   handleUserClick: () => void;
   handleDeletePeticao: (id: number) => void;
-  handleStopViewingAs: () => void;
 }
 
 const PeticoesContext = createContext<PeticoesContextType | undefined>(undefined);
@@ -36,85 +33,51 @@ export const usePeticoes = () => {
 
 export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
+  const { user, profile, loading } = useSupabaseAuth();
   const [selectedModeloId, setSelectedModeloId] = useState<number | null>(null);
   const [selectedPeticaoId, setSelectedPeticaoId] = useState<number | null>(null);
   const [view, setView] = useState<'list' | 'editor' | 'new' | 'user'>('list');
   const [peticoesRecentes, setPeticoesRecentes] = useState<any[]>([]);
-  const [isPremium, setIsPremium] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isViewingAsUser, setIsViewingAsUser] = useState(false);
-  const [viewingBanner, setViewingBanner] = useState<string | null>(null);
   
-  // Carrega dados do localStorage
+  // Derivar estados de premium e admin do perfil Supabase
+  const isPremium = profile?.plano_id?.includes('premium') || profile?.plano_id === 'admin' || false;
+  const isAdmin = profile?.plano_id === 'admin' || false;
+  
+  // Carrega dados do localStorage apenas como fallback temporário
   useEffect(() => {
-    // Verificar se existe usuário logado
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
+    if (loading) return; // Esperar carregar autenticação
+    
+    if (!user) {
+      console.log('PETICOES: Usuário não autenticado, redirecionando para login');
       navigate('/');
       return;
     }
     
-    // Verificar se admin está visualizando como outro usuário
-    const viewingAsUserId = localStorage.getItem('viewingAsUserId');
-    const viewingAsUserName = localStorage.getItem('viewingAsUserName');
+    console.log('PETICOES: Usuário autenticado, carregando petições', {
+      userId: user.id,
+      isPremium,
+      isAdmin
+    });
     
-    if (viewingAsUserId && viewingAsUserName) {
-      setIsViewingAsUser(true);
-      setViewingBanner(`Visualizando como ${viewingAsUserName}`);
-    } else {
-      setIsViewingAsUser(false);
-      setViewingBanner(null);
-    }
-    
-    // Verificar se usuário é admin
-    const userIsAdmin = localStorage.getItem('userIsAdmin') === 'true';
-    setIsAdmin(userIsAdmin);
-    
-    initializeLocalStorage();
+    // Carregar petições do localStorage (temporário até migrar para Supabase)
     const storedPeticoes = localStorage.getItem('peticoesRecentes');
     if (storedPeticoes) {
       try {
         const allPeticoes = JSON.parse(storedPeticoes);
         
-        // Se admin está visualizando como outro usuário, mostrar apenas as petições desse usuário
-        if (viewingAsUserId) {
-          const filteredPeticoes = allPeticoes.filter((p: any) => !p.userId || p.userId === viewingAsUserId);
-          setPeticoesRecentes(filteredPeticoes);
-        } else if (userIsAdmin) {
-          // Se for admin normal, mostrar petições de todos os usuários
-          setPeticoesRecentes(allPeticoes);
-        } else {
-          // Se for usuário comum, filtrar apenas as próprias petições
-          const filteredPeticoes = allPeticoes.filter((p: any) => !p.userId || p.userId === userId);
-          setPeticoesRecentes(filteredPeticoes);
-        }
+        // Se for admin, mostrar todas as petições; senão, filtrar por usuário
+        const filteredPeticoes = isAdmin 
+          ? allPeticoes 
+          : allPeticoes.filter((p: any) => !p.userId || p.userId === user.id);
+        
+        setPeticoesRecentes(filteredPeticoes);
       } catch (error) {
-        console.error('Erro ao carregar petições:', error);
+        console.error('PETICOES: Erro ao carregar petições:', error);
       }
     }
-    
-    const userPremium = localStorage.getItem('userPremium') === 'true';
-    setIsPremium(userPremium);
-  }, [navigate]);
-  
-  const handleStopViewingAs = () => {
-    const originalUserId = localStorage.getItem('originalUserId');
-    if (originalUserId) {
-      localStorage.removeItem('viewingAsUserId');
-      localStorage.removeItem('viewingAsUserName');
-      localStorage.removeItem('viewingAsUserEmail');
-      localStorage.removeItem('originalUserId');
-      
-      setIsViewingAsUser(false);
-      setViewingBanner(null);
-      
-      toast.success('Retornando à visualização normal');
-      navigate('/peticoes');
-    }
-  };
+  }, [user, profile, loading, navigate, isAdmin]);
 
   const handleNovaPeticao = () => {
-    // Verificar limite de petições para usuários gratuitos
     if (!isPremium) {
       const count = parseInt(localStorage.getItem('peticoesCount') || '0');
       if (count >= 3) {
@@ -129,7 +92,6 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
   
   const handleUseModelo = (id: number) => {
-    // Verificar limite de petições para usuários gratuitos
     if (!isPremium) {
       const count = parseInt(localStorage.getItem('peticoesCount') || '0');
       if (count >= 3) {
@@ -155,11 +117,15 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const handleSavePeticao = (data: any) => {
-    // Adicionar ID do usuário atual à petição
-    const currentUserId = localStorage.getItem('userId');
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    // Adicionar ID do usuário Supabase à petição
     const updatedData = {
       ...data,
-      userId: currentUserId
+      userId: user.id
     };
   
     // Carregar todas as petições armazenadas
@@ -169,28 +135,21 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     const existingIndex = updatedPeticoes.findIndex(p => p.id === data.id);
     
     if (existingIndex >= 0) {
-      // Atualiza petição existente
       updatedPeticoes[existingIndex] = updatedData;
     } else {
-      // Adiciona nova petição
       updatedPeticoes.unshift(updatedData);
       
-      // Incrementa contador para usuários não premium
       if (!isPremium) {
         const count = parseInt(localStorage.getItem('peticoesCount') || '0');
         localStorage.setItem('peticoesCount', String(count + 1));
       }
     }
     
-    // Atualizar no localStorage todas as petições
     localStorage.setItem('peticoesRecentes', JSON.stringify(updatedPeticoes));
     
-    // Filtrar petições com base no tipo de usuário
-    const currentUserIsAdmin = localStorage.getItem('userIsAdmin') === 'true';
-    
-    const filteredPeticoes = currentUserIsAdmin
+    const filteredPeticoes = isAdmin
       ? updatedPeticoes
-      : updatedPeticoes.filter(p => !p.userId || p.userId === currentUserId);
+      : updatedPeticoes.filter(p => !p.userId || p.userId === user.id);
     
     setPeticoesRecentes(filteredPeticoes);
     
@@ -207,26 +166,18 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (storedPeticoes) {
       try {
         const allPeticoes = JSON.parse(storedPeticoes);
-        
-        // Filtrar a petição a ser excluída
         const updatedPeticoes = allPeticoes.filter((p: any) => p.id !== id);
         
-        // Atualizar localStorage
         localStorage.setItem('peticoesRecentes', JSON.stringify(updatedPeticoes));
         
-        // Filtrar petições com base no tipo de usuário
-        const currentUserId = localStorage.getItem('userId');
-        const currentUserIsAdmin = localStorage.getItem('userIsAdmin') === 'true';
-        
-        const filteredPeticoes = currentUserIsAdmin
+        const filteredPeticoes = isAdmin
           ? updatedPeticoes
-          : updatedPeticoes.filter(p => !p.userId || p.userId === currentUserId);
+          : updatedPeticoes.filter(p => !p.userId || p.userId === user.id);
         
         setPeticoesRecentes(filteredPeticoes);
-        
         toast.success('Petição excluída com sucesso!');
       } catch (error) {
-        console.error('Erro ao excluir petição:', error);
+        console.error('PETICOES: Erro ao excluir petição:', error);
         toast.error('Erro ao excluir petição. Tente novamente.');
       }
     }
@@ -239,8 +190,6 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     view,
     isPremium,
     isAdmin,
-    isViewingAsUser,
-    viewingBanner,
     setView,
     handleNovaPeticao,
     handleUseModelo,
@@ -249,7 +198,6 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
     handleSavePeticao,
     handleUserClick,
     handleDeletePeticao,
-    handleStopViewingAs,
   };
 
   return (

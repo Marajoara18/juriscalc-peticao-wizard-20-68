@@ -11,6 +11,7 @@ import SupabaseLogin from "./pages/SupabaseLogin";
 import AdminPanel from "./pages/AdminPanel";
 import Calculadora from "./pages/Calculadora";
 import Peticoes from "./pages/Peticoes";
+import MinhaContaPage from "./pages/MinhaContaPage";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import MasterPasswordReset from "./components/auth/MasterPasswordReset";
@@ -67,7 +68,7 @@ const App = () => {
                 path="/minha-conta" 
                 element={
                   <ProtectedRoute requireAuth={true}>
-                    <Peticoes />
+                    <MinhaContaPage />
                   </ProtectedRoute>
                 } 
               />
