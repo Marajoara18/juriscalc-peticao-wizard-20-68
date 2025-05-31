@@ -6,14 +6,6 @@ import { UserData } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-// Define User type for database operations
-interface User {
-  id: string;
-  email?: string;
-  nome_completo?: string;
-  plano_id?: string;
-}
-
 export const useUserManagement = () => {
   const navigate = useNavigate();
   const { user: supabaseUser, profile, loading, signOut } = useSupabaseAuth(); 
@@ -21,7 +13,7 @@ export const useUserManagement = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   console.log('[USER_MANAGEMENT] Hook initialized. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading);
@@ -72,7 +64,7 @@ export const useUserManagement = () => {
     try {
       const { data, error } = await supabase
         .from('perfis')
-        .select('id, nome_completo, email, plano_id');
+        .select('*');
 
       if (error) {
         console.error('[USER_MANAGEMENT] Error fetching users:', error);
@@ -80,7 +72,21 @@ export const useUserManagement = () => {
         setAllUsers([]);
       } else {
         console.log('[USER_MANAGEMENT] Users fetched successfully:', data.length);
-        setAllUsers(data || []); 
+        // Convert to UserData format
+        const mappedUsers: UserData[] = (data || []).map(profile => ({
+          id: profile.id,
+          nome: profile.nome_completo,
+          email: profile.email,
+          isAdmin: profile.plano_id === 'admin',
+          isPremium: profile.plano_id !== 'gratuito',
+          canViewPanels: false,
+          logoUrl: undefined,
+          oab: profile.oab || undefined,
+          planoId: profile.plano_id,
+          limiteCalculosSalvos: profile.limite_calculos_salvos,
+          limitePeticoesSalvas: profile.limite_peticoes_salvas
+        }));
+        setAllUsers(mappedUsers); 
       }
     } catch (error) {
       console.error('[USER_MANAGEMENT] Unexpected error fetching users:', error);

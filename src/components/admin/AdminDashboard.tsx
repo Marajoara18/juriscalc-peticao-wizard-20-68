@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -175,7 +176,7 @@ const AdminDashboard = () => {
                             </span>
                           </TableCell>
                           <TableCell>
-                            {new Date(profile.data_criacao || '').toLocaleDateString()}
+                            {new Date(profile.data_criacao).toLocaleDateString()}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
@@ -183,7 +184,7 @@ const AdminDashboard = () => {
                                 <>
                                   <Switch
                                     checked={isPremium}
-                                    onCheckedChange={() => toggleUserPlan(profile.id, profile.plano_id)}
+                                    onCheckedChange={() => toggleUserPlan(profile.id, profile.plano_id || 'gratuito')}
                                   />
                                   <Button
                                     variant="destructive"

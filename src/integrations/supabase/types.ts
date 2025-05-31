@@ -9,7 +9,138 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      calculos_salvos: {
+        Row: {
+          dados_entrada_json: Json
+          data_atualizacao: string
+          data_criacao: string
+          id: string
+          resultado_calculo_json: Json
+          tipo_calculo: string | null
+          titulo_calculo: string
+          usuario_id: string
+        }
+        Insert: {
+          dados_entrada_json: Json
+          data_atualizacao?: string
+          data_criacao?: string
+          id?: string
+          resultado_calculo_json: Json
+          tipo_calculo?: string | null
+          titulo_calculo: string
+          usuario_id: string
+        }
+        Update: {
+          dados_entrada_json?: Json
+          data_atualizacao?: string
+          data_criacao?: string
+          id?: string
+          resultado_calculo_json?: Json
+          tipo_calculo?: string | null
+          titulo_calculo?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
+      modelos_peticoes: {
+        Row: {
+          ativo: boolean | null
+          categoria: string
+          conteudo_template: string
+          data_criacao: string
+          id: string
+          nome: string
+          variaveis_disponiveis: Json | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria: string
+          conteudo_template: string
+          data_criacao?: string
+          id?: string
+          nome: string
+          variaveis_disponiveis?: Json | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string
+          conteudo_template?: string
+          data_criacao?: string
+          id?: string
+          nome?: string
+          variaveis_disponiveis?: Json | null
+        }
+        Relationships: []
+      }
+      perfis: {
+        Row: {
+          data_atualizacao: string
+          data_criacao: string
+          email: string
+          id: string
+          limite_calculos_salvos: number | null
+          limite_peticoes_salvas: number | null
+          nome_completo: string
+          oab: string | null
+          plano_id: string | null
+        }
+        Insert: {
+          data_atualizacao?: string
+          data_criacao?: string
+          email: string
+          id: string
+          limite_calculos_salvos?: number | null
+          limite_peticoes_salvas?: number | null
+          nome_completo: string
+          oab?: string | null
+          plano_id?: string | null
+        }
+        Update: {
+          data_atualizacao?: string
+          data_criacao?: string
+          email?: string
+          id?: string
+          limite_calculos_salvos?: number | null
+          limite_peticoes_salvas?: number | null
+          nome_completo?: string
+          oab?: string | null
+          plano_id?: string | null
+        }
+        Relationships: []
+      }
+      peticoes_salvas: {
+        Row: {
+          calculos_associados: Json | null
+          conteudo: string
+          data_atualizacao: string
+          data_criacao: string
+          id: string
+          modelo_usado: string | null
+          titulo: string
+          usuario_id: string
+        }
+        Insert: {
+          calculos_associados?: Json | null
+          conteudo: string
+          data_atualizacao?: string
+          data_criacao?: string
+          id?: string
+          modelo_usado?: string | null
+          titulo: string
+          usuario_id: string
+        }
+        Update: {
+          calculos_associados?: Json | null
+          conteudo?: string
+          data_atualizacao?: string
+          data_criacao?: string
+          id?: string
+          modelo_usado?: string | null
+          titulo?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

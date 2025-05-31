@@ -1,18 +1,10 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
 
-interface DatabaseProfile {
-  id: string;
-  email: string;
-  nome_completo: string;
-  plano_id: string;
-  data_criacao: string;
-  data_atualizacao: string;
-  oab?: string;
-  limite_calculos_salvos: number;
-  limite_peticoes_salvas: number;
-}
+type Profile = Database['public']['Tables']['perfis']['Row'];
 
 const PLANO_LIMITES = {
   gratuito: {
@@ -32,7 +24,7 @@ const PLANO_LIMITES = {
 const ADMIN_EMAILS = ['johnnysantos_177@msn.com'];
 
 export const useAdminManagement = () => {
-  const [profiles, setProfiles] = useState<DatabaseProfile[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfiles = useCallback(async () => {
@@ -72,7 +64,7 @@ export const useAdminManagement = () => {
       console.log('[ADMIN_MANAGEMENT] Perfil atual:', currentProfile);
 
       // Verificar se o email está na lista de admins ou se o plano é admin
-      const isAdmin = ADMIN_EMAILS.includes(currentProfile?.email) || currentProfile?.plano_id === 'admin';
+      const isAdmin = ADMIN_EMAILS.includes(currentProfile?.email || '') || currentProfile?.plano_id === 'admin';
       
       if (!isAdmin) {
         console.log('[ADMIN_MANAGEMENT] Usuário não é admin');
@@ -81,7 +73,7 @@ export const useAdminManagement = () => {
       }
 
       // Se o usuário é admin por email mas não tem plano_id admin, vamos atualizar
-      if (ADMIN_EMAILS.includes(currentProfile?.email) && currentProfile?.plano_id !== 'admin') {
+      if (ADMIN_EMAILS.includes(currentProfile?.email || '') && currentProfile?.plano_id !== 'admin') {
         console.log('[ADMIN_MANAGEMENT] Atualizando plano para admin...');
         const { error: updateError } = await supabase
           .from('perfis')
@@ -223,9 +215,9 @@ export const useAdminManagement = () => {
         .from('perfis')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error('[ADMIN_MANAGEMENT] Erro ao verificar usuário existente:', checkError);
         toast.error('Erro ao verificar usuário existente');
         return;
@@ -249,28 +241,8 @@ export const useAdminManagement = () => {
           return;
         }
       } else {
-        console.log('[ADMIN_MANAGEMENT] Criando novo usuário admin');
-        const now = new Date().toISOString();
-        const newAdmin: DatabaseProfile = {
-          id: `admin-${Date.now()}`,
-          email,
-          nome_completo: 'Administrador',
-          plano_id: 'admin',
-          limite_calculos_salvos: PLANO_LIMITES.admin.calculos,
-          limite_peticoes_salvas: PLANO_LIMITES.admin.peticoes,
-          data_criacao: now,
-          data_atualizacao: now
-        };
-
-        const { error: createError } = await supabase
-          .from('perfis')
-          .insert(newAdmin);
-
-        if (createError) {
-          console.error('[ADMIN_MANAGEMENT] Erro ao criar admin:', createError);
-          toast.error('Erro ao criar administrador');
-          return;
-        }
+        toast.error('Usuário não encontrado. O usuário deve se registrar primeiro.');
+        return;
       }
 
       await fetchProfiles();
