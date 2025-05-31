@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { UserData } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +44,7 @@ export const useUserManagement = () => {
         isAdmin: isAdminUser,
         isPremium: profile.plano_id !== 'gratuito',
         canViewPanels: isMasterAdminUser, 
-        logoUrl: undefined, // Remove logo_url reference since it doesn't exist in Profile type
+        logoUrl: undefined,
         oab: profile.oab || undefined,
         planoId: profile.plano_id,
         limiteCalculosSalvos: profile.limite_calculos_salvos,

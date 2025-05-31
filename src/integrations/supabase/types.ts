@@ -9,127 +9,13 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      calculos_salvos: {
-        Row: {
-          dados_entrada_json: Json
-          data_atualizacao: string
-          data_criacao: string
-          id: string
-          resultado_calculo_json: Json
-          tipo_calculo: string
-          titulo_calculo: string
-          usuario_id: string
-        }
-        Insert: {
-          dados_entrada_json: Json
-          data_atualizacao?: string
-          data_criacao?: string
-          id?: string
-          resultado_calculo_json: Json
-          tipo_calculo?: string
-          titulo_calculo: string
-          usuario_id: string
-        }
-        Update: {
-          dados_entrada_json?: Json
-          data_atualizacao?: string
-          data_criacao?: string
-          id?: string
-          resultado_calculo_json?: Json
-          tipo_calculo?: string
-          titulo_calculo?: string
-          usuario_id?: string
-        }
-        Relationships: []
-      }
-      perfis: {
-        Row: {
-          data_atualizacao: string
-          data_criacao: string
-          email: string
-          id: string
-          limite_calculos_salvos: number | null
-          limite_peticoes_salvas: number | null
-          nome_completo: string
-          oab: string | null
-          plano_id: string
-        }
-        Insert: {
-          data_atualizacao?: string
-          data_criacao?: string
-          email: string
-          id: string
-          limite_calculos_salvos?: number | null
-          limite_peticoes_salvas?: number | null
-          nome_completo: string
-          oab?: string | null
-          plano_id?: string
-        }
-        Update: {
-          data_atualizacao?: string
-          data_criacao?: string
-          email?: string
-          id?: string
-          limite_calculos_salvos?: number | null
-          limite_peticoes_salvas?: number | null
-          nome_completo?: string
-          oab?: string | null
-          plano_id?: string
-        }
-        Relationships: []
-      }
-      peticoes_salvas: {
-        Row: {
-          conteudo_json: Json
-          data_atualizacao: string
-          data_criacao: string
-          id: string
-          modelo_id: string | null
-          status: string
-          titulo: string
-          usuario_id: string
-        }
-        Insert: {
-          conteudo_json: Json
-          data_atualizacao?: string
-          data_criacao?: string
-          id?: string
-          modelo_id?: string | null
-          status?: string
-          titulo: string
-          usuario_id: string
-        }
-        Update: {
-          conteudo_json?: Json
-          data_atualizacao?: string
-          data_criacao?: string
-          id?: string
-          modelo_id?: string | null
-          status?: string
-          titulo?: string
-          usuario_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_current_user_profile: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          nome_completo: string
-          email: string
-          plano_id: string
-          oab: string
-          data_criacao: string
-          data_atualizacao: string
-          limite_calculos_salvos: number
-          limite_peticoes_salvas: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
