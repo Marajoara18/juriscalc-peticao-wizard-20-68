@@ -1,30 +1,26 @@
 
-export interface User {
+export interface UserData {
   id: string;
-  nome: string;
+  nome: string; // Mapeado de nome_completo
   email: string;
-  senha?: string;
   isAdmin: boolean;
+  isPremium: boolean;
+  canViewPanels: boolean;
   logoUrl?: string;
-  canViewPanels?: boolean;
-  isPremium?: boolean;
   oab?: string;
-  planoId?: string;
+  planoId: string; // Mapeado de plano_id
   limiteCalculosSalvos?: number;
   limitePeticoesSalvas?: number;
 }
 
-export interface UserData {
+export interface UserProfile {
   id: string;
-  nome: string;
+  nome_completo: string;
   email: string;
-  senha?: string;
-  isAdmin: boolean;
-  logoUrl?: string;
-  canViewPanels?: boolean;
-  isPremium?: boolean;
+  plano_id: string;
   oab?: string;
-  planoId?: string;
-  limiteCalculosSalvos?: number;
-  limitePeticoesSalvas?: number;
+  data_criacao: string;
+  data_atualizacao: string;
+  limite_calculos_salvos?: number;
+  limite_peticoes_salvas?: number;
 }

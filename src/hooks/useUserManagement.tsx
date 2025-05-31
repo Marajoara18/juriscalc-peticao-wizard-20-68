@@ -38,9 +38,9 @@ export const useUserManagement = () => {
         canViewPanels: isMasterAdminUser, 
         logoUrl: undefined,
         oab: profile.oab || undefined,
-        planoId: profile.plano_id,
-        limiteCalculosSalvos: profile.limite_calculos_salvos,
-        limitePeticoesSalvas: profile.limite_peticoes_salvas
+        planoId: profile.plano_id || 'gratuito',
+        limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
+        limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
       };
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
       setUserData(currentUserData);
@@ -82,9 +82,9 @@ export const useUserManagement = () => {
           canViewPanels: false,
           logoUrl: undefined,
           oab: profile.oab || undefined,
-          planoId: profile.plano_id,
-          limiteCalculosSalvos: profile.limite_calculos_salvos,
-          limitePeticoesSalvas: profile.limite_peticoes_salvas
+          planoId: profile.plano_id || 'gratuito',
+          limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
+          limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
         }));
         setAllUsers(mappedUsers); 
       }
