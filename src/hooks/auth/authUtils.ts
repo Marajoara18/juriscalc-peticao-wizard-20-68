@@ -16,3 +16,11 @@ export const getIsMasterAdmin = (email: string | undefined): boolean => {
   const masterAdminEmails = ['admin@juriscalc.com', 'johnnysantos_177@msn.com'];
   return masterAdminEmails.includes(email);
 };
+
+export const hasUnlimitedAccess = (profile: Profile | null, email?: string): boolean => {
+  // Verifica se é master admin primeiro
+  if (getIsMasterAdmin(email)) return true;
+  
+  // Verifica se tem plano premium ou admin
+  return getIsPremium(profile);
+};
