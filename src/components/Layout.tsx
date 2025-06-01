@@ -11,33 +11,20 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const { user, profile, loading } = useSupabaseAuth();
+  const { user, profile } = useSupabaseAuth();
   const [showPremiumButton, setShowPremiumButton] = useState(true);
   
   useEffect(() => {
-    // Se ainda está carregando, não alterar o estado do botão
-    if (loading) {
-      return;
-    }
-
-    // Se não há usuário, mostrar botão premium
     if (!user) {
       setShowPremiumButton(true);
       return;
     }
 
-    // Verificar acesso ilimitado - mesmo sem perfil carregado
+    // Usar a função centralizada para verificar acesso ilimitado
     const unlimitedAccess = hasUnlimitedAccess(profile, user.email);
     
-    console.log('[LAYOUT] Verificando acesso premium:', {
-      hasUser: !!user,
-      hasProfile: !!profile,
-      userEmail: user.email,
-      unlimitedAccess
-    });
-    
     setShowPremiumButton(!unlimitedAccess);
-  }, [user, profile, loading]);
+  }, [user, profile]);
   
   return (
     <div className="min-h-screen flex flex-col">
