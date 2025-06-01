@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { StrictMode } from "react";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
 import AuthPage from "./pages/AuthPage";
 import AdminPanel from "./pages/AdminPanel";
 import Calculadora from "./pages/Calculadora";
@@ -33,7 +32,6 @@ const App = () => {
               {/* Public routes */}
               <Route path="/" element={<Navigate to="/auth" replace />} />
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/login-old" element={<Login />} />
               <Route path="/esqueci-senha" element={<PasswordResetRequest />} />
               <Route path="/reset-senha" element={<PasswordReset />} />
               <Route path="/reset-password" element={<MasterPasswordReset />} />

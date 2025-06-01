@@ -9,22 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { toast } from 'sonner';
 import { UserPlus, Edit, Trash2 } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
 
-interface DatabaseProfile {
-  id: string;
-  nome_completo: string;
-  email: string;
-  plano_id: string;
-  data_criacao: string;
-}
-
-interface Profile {
-  id: string;
-  nome_completo: string;
-  email: string;
-  plano_id: string;
-  created_at: string;
-}
+type Profile = Database['public']['Tables']['perfis']['Row'];
 
 const UserManagement = () => {
   const { profile, isAdmin } = useSupabaseAuth();
@@ -37,7 +24,7 @@ const UserManagement = () => {
     email: '',
     password: '',
     nome_completo: '',
-    plano_id: 'free'
+    plano_id: 'gratuito'
   });
 
   const fetchProfiles = async () => {
@@ -52,16 +39,7 @@ const UserManagement = () => {
 
       if (error) throw error;
       
-      // Map database fields to component expected fields
-      const mappedProfiles: Profile[] = (data || []).map((dbProfile: DatabaseProfile) => ({
-        id: dbProfile.id,
-        nome_completo: dbProfile.nome_completo,
-        email: dbProfile.email,
-        plano_id: dbProfile.plano_id,
-        created_at: dbProfile.data_criacao
-      }));
-      
-      setProfiles(mappedProfiles);
+      setProfiles(data || []);
     } catch (error: any) {
       console.error('Erro ao carregar usuários:', error);
       toast.error('Erro ao carregar usuários');
@@ -87,24 +65,12 @@ const UserManagement = () => {
 
       if (authError) throw authError;
 
-      // Atualizar perfil
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('perfis')
-          .update({
-            plano_id: newUser.plano_id
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
-      }
-
       toast.success('Usuário criado com sucesso!');
       setNewUser({
         email: '',
         password: '',
         nome_completo: '',
-        plano_id: 'free'
+        plano_id: 'gratuito'
       });
       fetchProfiles();
     } catch (error: any) {
@@ -235,9 +201,9 @@ const UserManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="free">Gratuito</SelectItem>
-                    <SelectItem value="premium_mensal">Premium Mensal</SelectItem>
-                    <SelectItem value="premium_anual">Premium Anual</SelectItem>
+                    <SelectItem value="gratuito">Gratuito</SelectItem>
+                    <SelectItem value="premium">Premium</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -270,7 +236,7 @@ const UserManagement = () => {
                         placeholder="Nome"
                       />
                       <Select
-                        value={editingUser.plano_id}
+                        value={editingUser.plano_id || 'gratuito'}
                         onValueChange={(value) => 
                           setEditingUser({...editingUser, plano_id: value})
                         }
@@ -279,9 +245,9 @@ const UserManagement = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="free">Gratuito</SelectItem>
-                          <SelectItem value="premium_mensal">Premium Mensal</SelectItem>
-                          <SelectItem value="premium_anual">Premium Anual</SelectItem>
+                          <SelectItem value="gratuito">Gratuito</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
                       <div className="flex gap-2">
@@ -298,9 +264,9 @@ const UserManagement = () => {
                       <h3 className="font-medium">{user.nome_completo}</h3>
                       <p className="text-sm text-gray-600">{user.email}</p>
                       <div className="flex gap-2 mt-1">
-                        <Badge variant={user.plano_id.includes('premium') ? 'default' : 'secondary'}>
-                          {user.plano_id === 'premium_mensal' ? 'Premium Mensal' : 
-                           user.plano_id === 'premium_anual' ? 'Premium Anual' : 'Gratuito'}
+                        <Badge variant={user.plano_id === 'premium' || user.plano_id === 'admin' ? 'default' : 'secondary'}>
+                          {user.plano_id === 'premium' ? 'Premium' : 
+                           user.plano_id === 'admin' ? 'Admin' : 'Gratuito'}
                         </Badge>
                       </div>
                     </div>

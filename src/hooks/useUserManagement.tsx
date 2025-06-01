@@ -2,11 +2,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+<<<<<<< HEAD
 import { User as SupabaseUser } from '@supabase/supabase-js'; // Renamed to avoid conflict
 import { UserData, Profile } from '@/types/user'; // Assuming Profile type is defined here or imported
+=======
+import { UserData } from '@/types/user';
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client'; // Import supabase client for direct calls if needed
 
+<<<<<<< HEAD
 // Define User type if not already globally available or imported correctly
 interface User {
   id: string;
@@ -17,6 +22,8 @@ interface User {
   // ... other fields
 }
 
+=======
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 export const useUserManagement = () => {
   const navigate = useNavigate();
   // Get user, profile, loading state, and signOut from the central auth hook
@@ -26,10 +33,15 @@ export const useUserManagement = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+<<<<<<< HEAD
   
   // State for the list of all users - now fetched from Supabase, not localStorage
   const [allUsers, setAllUsers] = useState<User[]>([]); 
   const [loadingUsers, setLoadingUsers] = useState(false); // State to track loading of all users
+=======
+  const [allUsers, setAllUsers] = useState<UserData[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 
   console.log('[USER_MANAGEMENT] Hook initialized. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading);
 
@@ -54,11 +66,15 @@ export const useUserManagement = () => {
         isPremium: profile.plano_id !== 'gratuito',
         // canViewPanels might be better derived directly from isMasterAdmin where needed
         canViewPanels: isMasterAdminUser, 
+<<<<<<< HEAD
         logoUrl: profile.logo_url || undefined, // Assuming logo_url exists in profile type
+=======
+        logoUrl: undefined,
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
         oab: profile.oab || undefined,
-        planoId: profile.plano_id,
-        limiteCalculosSalvos: profile.limite_calculos_salvos,
-        limitePeticoesSalvas: profile.limite_peticoes_salvas
+        planoId: profile.plano_id || 'gratuito',
+        limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
+        limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
       };
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
       setUserData(currentUserData);
@@ -89,8 +105,13 @@ export const useUserManagement = () => {
       // Ensure you have appropriate RLS policies in Supabase
       // This might require an admin role or specific permissions
       const { data, error } = await supabase
+<<<<<<< HEAD
         .from('perfis') // Assuming 'perfis' table holds user profiles
         .select('id, nome_completo, email, plano_id'); // Select only necessary fields
+=======
+        .from('perfis')
+        .select('*');
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 
       if (error) {
         console.error('[USER_MANAGEMENT] Error fetching users:', error);
@@ -98,8 +119,26 @@ export const useUserManagement = () => {
         setAllUsers([]);
       } else {
         console.log('[USER_MANAGEMENT] Users fetched successfully:', data.length);
+<<<<<<< HEAD
         // Map Supabase data to your User type if necessary
         setAllUsers(data || []); 
+=======
+        // Convert to UserData format
+        const mappedUsers: UserData[] = (data || []).map(profile => ({
+          id: profile.id,
+          nome: profile.nome_completo,
+          email: profile.email,
+          isAdmin: profile.plano_id === 'admin',
+          isPremium: profile.plano_id !== 'gratuito',
+          canViewPanels: false,
+          logoUrl: undefined,
+          oab: profile.oab || undefined,
+          planoId: profile.plano_id || 'gratuito',
+          limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
+          limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
+        }));
+        setAllUsers(mappedUsers); 
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
       }
     } catch (error) {
       console.error('[USER_MANAGEMENT] Unexpected error fetching users:', error);

@@ -1,8 +1,14 @@
 
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
+=======
+import { useState, useEffect, useCallback } from 'react';
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
 
+<<<<<<< HEAD
 interface Profile {
   id: string;
   nome_completo: string;
@@ -12,15 +18,90 @@ interface Profile {
   data_criacao: string;
   data_atualizacao: string;
 }
+=======
+type Profile = Database['public']['Tables']['perfis']['Row'];
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 
 export const useAdminManagement = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+<<<<<<< HEAD
   const [loading, setLoading] = useState(false);
+=======
+  const [loading, setLoading] = useState(true);
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 
   const fetchAllProfiles = async () => {
     setLoading(true);
     try {
+<<<<<<< HEAD
       const { data, error } = await supabase
+=======
+      setLoading(true);
+      console.log('[ADMIN_MANAGEMENT] Iniciando busca de perfis...');
+
+      // Primeiro verificar a sessão atual
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('[ADMIN_MANAGEMENT] Erro ao verificar sessão:', sessionError);
+        toast.error('Erro ao verificar sessão');
+        return;
+      }
+
+      if (!session) {
+        console.log('[ADMIN_MANAGEMENT] Sem sessão ativa');
+        return;
+      }
+
+      console.log('[ADMIN_MANAGEMENT] Sessão encontrada:', session.user.id);
+
+      // Verificar se o usuário atual é admin
+      const { data: currentProfile, error: profileError } = await supabase
+        .from('perfis')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) {
+        console.error('[ADMIN_MANAGEMENT] Erro ao verificar perfil:', profileError);
+        toast.error('Erro ao verificar permissões');
+        return;
+      }
+
+      console.log('[ADMIN_MANAGEMENT] Perfil atual:', currentProfile);
+
+      // Verificar se o email está na lista de admins ou se o plano é admin
+      const isAdmin = ADMIN_EMAILS.includes(currentProfile?.email || '') || currentProfile?.plano_id === 'admin';
+      
+      if (!isAdmin) {
+        console.log('[ADMIN_MANAGEMENT] Usuário não é admin');
+        toast.error('Acesso não autorizado');
+        return;
+      }
+
+      // Se o usuário é admin por email mas não tem plano_id admin, vamos atualizar
+      if (ADMIN_EMAILS.includes(currentProfile?.email || '') && currentProfile?.plano_id !== 'admin') {
+        console.log('[ADMIN_MANAGEMENT] Atualizando plano para admin...');
+        const { error: updateError } = await supabase
+          .from('perfis')
+          .update({ 
+            plano_id: 'admin',
+            limite_calculos_salvos: PLANO_LIMITES.admin.calculos,
+            limite_peticoes_salvas: PLANO_LIMITES.admin.peticoes,
+            data_atualizacao: new Date().toISOString()
+          })
+          .eq('id', session.user.id);
+
+        if (updateError) {
+          console.error('[ADMIN_MANAGEMENT] Erro ao atualizar plano:', updateError);
+        }
+      }
+
+      console.log('[ADMIN_MANAGEMENT] Buscando todos os perfis...');
+      
+      // Agora buscar todos os perfis
+      const { data: perfilData, error: perfilError } = await supabase
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
         .from('perfis')
         .select('*')
         .order('data_criacao', { ascending: false });
@@ -86,11 +167,23 @@ export const useAdminManagement = () => {
         .from('perfis')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
+<<<<<<< HEAD
       if (existingProfile) {
         // Update existing user to admin
         const { error } = await supabase
+=======
+      if (checkError) {
+        console.error('[ADMIN_MANAGEMENT] Erro ao verificar usuário existente:', checkError);
+        toast.error('Erro ao verificar usuário existente');
+        return;
+      }
+
+      if (existingUser) {
+        console.log('[ADMIN_MANAGEMENT] Usuário existente, atualizando para admin:', existingUser);
+        const { error: updateError } = await supabase
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
           .from('perfis')
           .update({ 
             plano_id: 'premium_anual'
@@ -102,7 +195,12 @@ export const useAdminManagement = () => {
         toast.success('Usuário promovido a premium!');
         fetchAllProfiles();
       } else {
+<<<<<<< HEAD
         toast.error('Usuário não encontrado. O usuário deve se cadastrar primeiro.');
+=======
+        toast.error('Usuário não encontrado. O usuário deve se registrar primeiro.');
+        return;
+>>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
       }
     } catch (error: any) {
       toast.error('Erro ao criar administrador: ' + error.message);

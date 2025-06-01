@@ -16,7 +16,7 @@ export type Database = {
           data_criacao: string
           id: string
           resultado_calculo_json: Json
-          tipo_calculo: string
+          tipo_calculo: string | null
           titulo_calculo: string
           usuario_id: string
         }
@@ -26,7 +26,7 @@ export type Database = {
           data_criacao?: string
           id?: string
           resultado_calculo_json: Json
-          tipo_calculo?: string
+          tipo_calculo?: string | null
           titulo_calculo: string
           usuario_id: string
         }
@@ -36,9 +36,39 @@ export type Database = {
           data_criacao?: string
           id?: string
           resultado_calculo_json?: Json
-          tipo_calculo?: string
+          tipo_calculo?: string | null
           titulo_calculo?: string
           usuario_id?: string
+        }
+        Relationships: []
+      }
+      modelos_peticoes: {
+        Row: {
+          ativo: boolean | null
+          categoria: string
+          conteudo_template: string
+          data_criacao: string
+          id: string
+          nome: string
+          variaveis_disponiveis: Json | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria: string
+          conteudo_template: string
+          data_criacao?: string
+          id?: string
+          nome: string
+          variaveis_disponiveis?: Json | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string
+          conteudo_template?: string
+          data_criacao?: string
+          id?: string
+          nome?: string
+          variaveis_disponiveis?: Json | null
         }
         Relationships: []
       }
@@ -52,7 +82,7 @@ export type Database = {
           limite_peticoes_salvas: number | null
           nome_completo: string
           oab: string | null
-          plano_id: string
+          plano_id: string | null
         }
         Insert: {
           data_atualizacao?: string
@@ -63,7 +93,7 @@ export type Database = {
           limite_peticoes_salvas?: number | null
           nome_completo: string
           oab?: string | null
-          plano_id?: string
+          plano_id?: string | null
         }
         Update: {
           data_atualizacao?: string
@@ -74,38 +104,38 @@ export type Database = {
           limite_peticoes_salvas?: number | null
           nome_completo?: string
           oab?: string | null
-          plano_id?: string
+          plano_id?: string | null
         }
         Relationships: []
       }
       peticoes_salvas: {
         Row: {
-          conteudo_json: Json
+          calculos_associados: Json | null
+          conteudo: string
           data_atualizacao: string
           data_criacao: string
           id: string
-          modelo_id: string | null
-          status: string
+          modelo_usado: string | null
           titulo: string
           usuario_id: string
         }
         Insert: {
-          conteudo_json: Json
+          calculos_associados?: Json | null
+          conteudo: string
           data_atualizacao?: string
           data_criacao?: string
           id?: string
-          modelo_id?: string | null
-          status?: string
+          modelo_usado?: string | null
           titulo: string
           usuario_id: string
         }
         Update: {
-          conteudo_json?: Json
+          calculos_associados?: Json | null
+          conteudo?: string
           data_atualizacao?: string
           data_criacao?: string
           id?: string
-          modelo_id?: string | null
-          status?: string
+          modelo_usado?: string | null
           titulo?: string
           usuario_id?: string
         }
@@ -116,20 +146,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_current_user_profile: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          nome_completo: string
-          email: string
-          plano_id: string
-          oab: string
-          data_criacao: string
-          data_atualizacao: string
-          limite_calculos_salvos: number
-          limite_peticoes_salvas: number
-        }[]
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
