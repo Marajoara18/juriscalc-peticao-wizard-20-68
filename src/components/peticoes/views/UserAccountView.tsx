@@ -7,11 +7,12 @@ import { useUserManagement } from '@/hooks/useUserManagement';
 import Layout from '@/components/Layout';
 import UserManagementPanel from '@/components/auth/UserManagementPanel';
 import MasterAdminCredentials from '@/components/auth/MasterAdminCredentials';
+import UserProfile from '@/components/auth/UserProfile';
 
 const UserAccountView = () => {
   const navigate = useNavigate();
   const { user, profile, loading } = useSupabaseAuth();
-  const { userData, isAdmin, isMasterAdmin, allUsers, updateUsers } = useUserManagement();
+  const { userData, isAdmin, isMasterAdmin, allUsers, updateUsers, handleLogout, updateCurrentUserData } = useUserManagement();
 
   const handleVoltar = () => {
     console.log('[USER_ACCOUNT_VIEW] Voltando para /home');
@@ -66,19 +67,32 @@ const UserAccountView = () => {
         
         {userData && (
           <>
-            <UserManagementPanel 
-              allUsers={allUsers}
-              updateUsers={updateUsers}
-              isAdmin={isAdmin}
+            {/* Componente de perfil do usuário para todos os usuários */}
+            <UserProfile 
+              userData={userData}
               isMasterAdmin={isMasterAdmin}
+              onLogout={handleLogout}
+              updateUserData={updateCurrentUserData}
             />
             
-            {isMasterAdmin && (
-              <MasterAdminCredentials 
-                userData={userData}
-                allUsers={allUsers}
-                updateUsers={updateUsers}
-              />
+            {/* Painéis administrativos apenas para admins */}
+            {isAdmin && (
+              <>
+                <UserManagementPanel 
+                  allUsers={allUsers}
+                  updateUsers={updateUsers}
+                  isAdmin={isAdmin}
+                  isMasterAdmin={isMasterAdmin}
+                />
+                
+                {isMasterAdmin && (
+                  <MasterAdminCredentials 
+                    userData={userData}
+                    allUsers={allUsers}
+                    updateUsers={updateUsers}
+                  />
+                )}
+              </>
             )}
           </>
         )}

@@ -1,63 +1,111 @@
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { RegisterFormData, User } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
+import { useProfileManager } from './useProfileManager';
+
+interface RegisterData {
+  nome: string;
+  email: string;
+  telefone: string;
+  senha: string;
+  confirmSenha: string;
+}
 
 export const useAuthRegister = () => {
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { createProfile } = useProfileManager();
 
-  const handleRegister = (data: RegisterFormData) => {
-    if (!data.nome || !data.email || !data.senha || !data.confirmSenha) {
-      toast.error('Preencha todos os campos');
-      return;
+  const register = async (data: RegisterData) => {
+    const { nome, email, telefone, senha, confirmSenha } = data;
+
+    if (senha !== confirmSenha) {
+      toast.error('As senhas não coincidem');
+      return { error: 'Senhas não coincidem' };
     }
-    
-    if (data.senha !== data.confirmSenha) {
-      toast.error('As senhas não conferem');
-      return;
+
+    if (senha.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return { error: 'Senha muito curta' };
     }
-    
-    // Buscar usuários do localStorage
-    const allUsers = JSON.parse(localStorage.getItem('allUsers') || '[]');
-    
-    // Verificar se já existe usuário com o mesmo email
-    const userExists = allUsers.some((u: User) => u.email === data.email);
-    
-    if (userExists) {
-      toast.error('Este e-mail já está cadastrado');
-      return;
+
+    setLoading(true);
+    console.log('[AUTH_REGISTER] Iniciando registro para:', email);
+
+    try {
+      // 1. Criar usuário no Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password: senha,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            nome_completo: nome,
+            telefone: telefone // Incluindo telefone nos metadados
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('[AUTH_REGISTER] Erro no Auth:', authError);
+        
+        if (authError.message.includes('already registered')) {
+          toast.error('Este e-mail já está cadastrado. Tente fazer login.');
+        } else if (authError.message.includes('email')) {
+          toast.error('E-mail inválido. Verifique e tente novamente.');
+        } else {
+          toast.error(`Erro no cadastro: ${authError.message}`);
+        }
+        
+        return { error: authError.message };
+      }
+
+      if (!authData.user) {
+        toast.error('Erro inesperado ao criar usuário');
+        return { error: 'Erro inesperado' };
+      }
+
+      console.log('[AUTH_REGISTER] Usuário criado no Auth:', authData.user.id);
+
+      // 2. Criar perfil se o usuário foi criado
+      if (authData.user) {
+        const profileResult = await createProfile({
+          userId: authData.user.id,
+          nomeCompleto: nome,
+          email,
+          telefone
+        });
+
+        if (!profileResult) {
+          console.warn('[AUTH_REGISTER] Falha ao criar perfil, mas usuário foi criado no Auth');
+        } else {
+          console.log('[AUTH_REGISTER] Perfil criado com sucesso');
+        }
+      }
+
+      // 3. Sucesso
+      if (authData.user && !authData.session) {
+        toast.success('Cadastro realizado! Verifique seu e-mail para confirmar a conta.');
+      } else {
+        toast.success('Cadastro realizado com sucesso!');
+        navigate('/');
+      }
+
+      return { error: null };
+
+    } catch (error: any) {
+      console.error('[AUTH_REGISTER] Erro inesperado:', error);
+      toast.error('Erro inesperado durante o cadastro');
+      return { error: error.message };
+    } finally {
+      setLoading(false);
     }
-    
-    // Verificar se é o e-mail do administrador mestre
-    const isMasterAdmin = data.email === 'admin@juriscalc.com' || data.email === 'johnnysantos_177@msn.com';
-    
-    // Criar novo usuário
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      nome: data.nome,
-      email: data.email,
-      senha: data.senha,
-      isAdmin: isMasterAdmin, // Será admin se for o e-mail admin@juriscalc.com
-      canViewPanels: isMasterAdmin, // Terá acesso aos painéis se for admin@juriscalc.com
-      isPremium: isMasterAdmin // Terá acesso premium se for admin@juriscalc.com
-    };
-    
-    allUsers.push(newUser);
-    localStorage.setItem('allUsers', JSON.stringify(allUsers));
-    
-    // Fazer login automático
-    localStorage.setItem('userId', newUser.id);
-    localStorage.setItem('userEmail', newUser.email);
-    localStorage.setItem('userName', newUser.nome);
-    localStorage.setItem('userIsAdmin', String(newUser.isAdmin));
-    localStorage.setItem('canViewPanels', String(!!newUser.canViewPanels));
-    localStorage.setItem('isPremium', String(!!newUser.isPremium));
-    
-    toast.success('Cadastro realizado com sucesso!');
-    navigate('/calculadora');
   };
 
   return {
-    handleRegister
+    register,
+    loading
   };
 };

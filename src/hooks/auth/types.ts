@@ -5,7 +5,7 @@ export interface Profile {
   email: string;
   plano_id: string;
   oab?: string;
-  telefone?: string;
+  telefone?: string; // Campo telefone adicionado
   logo_url?: string;
   data_criacao: string;
   data_atualizacao: string;
