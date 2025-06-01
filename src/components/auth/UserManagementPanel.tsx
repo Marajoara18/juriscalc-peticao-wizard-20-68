@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { UserPlus, Trash2, Key, KeyRound, UserX, Shield, CheckCircle, XCircle } from "lucide-react";
+import { UserPlus, Trash2, Shield, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Toggle } from "@/components/ui/toggle";
 import { UserData } from '@/types/user';
@@ -22,7 +23,6 @@ interface UserManagementPanelProps {
 const userSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres'),
   email: z.string().email('E-mail inválido'),
-  senha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
   isAdmin: z.boolean().optional(),
   canViewPanels: z.boolean().optional(),
   isPremium: z.boolean().optional()
@@ -39,7 +39,6 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
     defaultValues: {
       nome: '',
       email: '',
-      senha: '',
       isAdmin: false,
       canViewPanels: false,
       isPremium: false
@@ -54,22 +53,19 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
     }
     
     // Criar novo usuário com todas as propriedades necessárias
-    const newUser = {
+    const newUser: UserData = {
       id: `user-${Date.now()}`,
       nome: data.nome,
       email: data.email,
-      senha: data.senha, // Incluir senha aqui
       isAdmin: !!data.isAdmin,
       canViewPanels: !!data.canViewPanels,
-      isPremium: !!data.isPremium
+      isPremium: !!data.isPremium,
+      planoId: data.isPremium ? 'premium' : 'gratuito',
+      limiteCalculosSalvos: data.isPremium ? 999999 : 3,
+      limitePeticoesSalvas: data.isPremium ? 999999 : 1
     };
     
-    // Atualizar o array de usuários diretamente no localStorage
-    // em vez de separar o estado dos usuários e o localStorage
     const updatedUsers = [...allUsers, newUser];
-    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
-    
-    // Atualizar o estado também
     updateUsers(updatedUsers);
     
     toast.success(`Usuário ${data.nome} criado com sucesso!`);
@@ -110,18 +106,18 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
     // Atualizar a lista de usuários com a nova permissão
     const updatedUsers = allUsers.map(user => {
       if (user.id === userId) {
-        return { ...user, isPremium: !currentValue };
+        return { 
+          ...user, 
+          isPremium: !currentValue,
+          planoId: !currentValue ? 'premium' : 'gratuito',
+          limiteCalculosSalvos: !currentValue ? 999999 : 3,
+          limitePeticoesSalvas: !currentValue ? 999999 : 1
+        };
       }
       return user;
     });
     
     updateUsers(updatedUsers);
-    
-    // Se o usuário logado for o que está sendo alterado, atualizar o status de premium no localStorage
-    const loggedInUserId = localStorage.getItem('userId');
-    if (loggedInUserId === userId) {
-      localStorage.setItem('isPremium', !currentValue ? 'true' : 'false');
-    }
     
     const userName = updatedUsers.find(user => user.id === userId)?.nome;
     const action = !currentValue ? 'ativado' : 'desativado';
@@ -296,20 +292,6 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
               
               <FormField
                 control={form.control}
-                name="senha"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Senha</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Digite uma senha" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
                 name="isAdmin"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center space-x-2 space-y-0">
@@ -378,7 +360,7 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center text-red-600">
-              <UserX className="h-5 w-5 mr-2" />
+              <Trash2 className="h-5 w-5 mr-2" />
               Excluir Usuário
             </DialogTitle>
           </DialogHeader>
