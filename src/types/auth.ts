@@ -18,6 +18,8 @@ export interface LoginFormData {
 export interface RegisterFormData {
   nome: string;
   email: string;
+  telefone: string; // Adicionado campo telefone
   senha: string;
   confirmSenha: string;
 }
+

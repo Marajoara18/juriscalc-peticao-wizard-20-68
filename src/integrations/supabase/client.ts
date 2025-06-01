@@ -3,30 +3,12 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-<<<<<<< HEAD
-// Read Supabase URL and Anon Key from environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Validate that the environment variables are set
-if (!supabaseUrl) {
-  throw new Error("VITE_SUPABASE_URL is not set in the environment variables.");
-}
-if (!supabaseAnonKey) {
-  throw new Error("VITE_SUPABASE_ANON_KEY is not set in the environment variables.");
-}
-=======
 const SUPABASE_URL = "https://boxcbeuhxomgjrgjzlbc.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveGNiZXVoeG9tZ2pyZ2p6bGJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3MTkyMjUsImV4cCI6MjA2NDI5NTIyNX0.ZOcFnmv1nmlfff92KF-PbRiRFfgFEtLYO7BOUKeCDTo";
->>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-<<<<<<< HEAD
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
-
-=======
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     persistSession: true,
@@ -34,4 +16,3 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     detectSessionInUrl: true
   }
 });
->>>>>>> 6ca043c0b4381c38d76feee2e98709e02eabccb4

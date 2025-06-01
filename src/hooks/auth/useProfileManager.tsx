@@ -3,49 +3,107 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from './types';
 
+// Adiciona um estado para controlar tentativas de criação
+let createAttempted = false;
+
+// Define os limites aqui também para consistência na criação
+const PLANO_LIMITES = {
+  gratuito: {
+    calculos: 3, // Limite de cálculos salvos
+    peticoes: 1
+  },
+  premium: {
+    calculos: 999999,
+    peticoes: 999999
+  },
+  admin: {
+    calculos: 999999,
+    peticoes: 999999
+  }
+};
+
+// Define uma interface para os dados necessários para criar o perfil
+interface CreateProfileData {
+  userId: string;
+  nomeCompleto: string;
+  email: string;
+  telefone?: string; // Telefone é opcional na criação inicial
+}
+
 export const useProfileManager = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
-    console.log('[PROFILE_MANAGER] Buscando perfil para usuário:', userId);
+    console.log('[PROFILE_MANAGER] Buscando perfil para:', userId);
+
     try {
-      // Busca direta simples para evitar recursão
       const { data: profileData, error } = await supabase
         .from('perfis')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('[PROFILE_MANAGER] Erro ao buscar perfil:', error);
-        
-        // Se o perfil não existe, tentar criar um
-        if (error.code === 'PGRST116') {
-          console.log('[PROFILE_MANAGER] Perfil não existe, tentando criar...');
-          return await createProfile(userId);
+        console.error('[PROFILE_MANAGER] Erro ao buscar perfil:', error.message);
+
+        const isPolicyError = error.code === 'PGRST116' || error.message.includes('policy') || error.message.includes('recursion');
+        if (isPolicyError && createAttempted) {
+          console.error('[PROFILE_MANAGER] Erro de política persistente após tentativa de criação. Interrompendo loop.');
+          createAttempted = false;
+          return null;
         }
-        
+
+        if (isPolicyError || !profileData) {
+          console.log('[PROFILE_MANAGER] Perfil não encontrado ou erro de política. Tentando criar perfil (via fetch)...');
+          // Tentativa de criação agora requer mais dados, idealmente o fluxo de signup chama createProfile diretamente
+          // Se chegarmos aqui, significa que o signup pode ter falhado em criar o perfil ou houve um erro.
+          // Não temos nome/telefone aqui, então a criação pode falhar ou ficar incompleta.
+          // Considerar remover a chamada a createProfile daqui e garantir que o signup sempre a chame.
+          // Por ora, tentaremos criar com dados mínimos, mas isso não é ideal.
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+              createAttempted = true;
+              const created = await createProfile({
+                  userId: userId,
+                  email: userData.user.email || '',
+                  nomeCompleto: userData.user.user_metadata?.nome_completo || userData.user.email?.split('@')[0] || 'Usuário',
+                  // Telefone não disponível neste fluxo
+              });
+              createAttempted = false;
+              return created;
+          } else {
+              console.error('[PROFILE_MANAGER] Não foi possível obter dados do usuário para criar perfil via fetch.');
+              return null;
+          }
+        }
+
         return null;
       }
 
-      console.log('[PROFILE_MANAGER] Perfil encontrado:', profileData);
-      return profileData;
+      if (profileData) {
+        console.log('[PROFILE_MANAGER] Perfil encontrado:', profileData.nome_completo);
+        createAttempted = false;
+        return profileData;
+      } else {
+        // Este caso também indica que o perfil não existe.
+        console.log('[PROFILE_MANAGER] Perfil não existe (caso raro após maybeSingle sem erro).');
+        // Não tentar criar aqui para evitar loops e falta de dados.
+        return null;
+      }
     } catch (error) {
-      console.error('[PROFILE_MANAGER] Erro inesperado ao buscar perfil:', error);
-      return await createProfile(userId);
+      console.error('[PROFILE_MANAGER] Erro inesperado ao buscar:', error);
+      createAttempted = false;
+      return null;
     }
   }, []);
 
-  const createProfile = async (userId: string): Promise<Profile | null> => {
-    console.log('[PROFILE_MANAGER] Tentando criar perfil para usuário:', userId);
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const email = userData.user?.email || '';
-      const nomeCompleto = userData.user?.user_metadata?.nome_completo || 
-                          userData.user?.user_metadata?.full_name || 
-                          email;
+  // Modificado para aceitar um objeto com os dados necessários
+  const createProfile = async (profileData: CreateProfileData): Promise<Profile | null> => {
+    const { userId, nomeCompleto, email, telefone } = profileData;
+    console.log('[PROFILE_MANAGER] Criando perfil para:', userId, 'com dados:', { nomeCompleto, email, telefone });
 
-      console.log('[PROFILE_MANAGER] Dados para criação do perfil:', { userId, nomeCompleto, email });
+    try {
+      const limitesGratuito = PLANO_LIMITES.gratuito;
 
       const { data, error } = await supabase
         .from('perfis')
@@ -53,17 +111,37 @@ export const useProfileManager = () => {
           id: userId,
           nome_completo: nomeCompleto,
           email: email,
-          plano_id: 'gratuito'
+          telefone: telefone, // Incluído campo telefone
+          plano_id: 'gratuito',
+          limite_calculos_salvos: limitesGratuito.calculos,
+          limite_peticoes_salvas: limitesGratuito.peticoes
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('[PROFILE_MANAGER] Erro ao criar perfil:', error);
+        console.error('[PROFILE_MANAGER] Erro ao criar perfil:', error.message);
+
+        const isPolicyError = error.code === 'PGRST116' || error.message.includes('policy') || error.message.includes('recursion');
+        if (isPolicyError) {
+            console.error('[PROFILE_MANAGER] Erro de política ao tentar criar perfil.');
+            return null;
+        }
+
+        if (error.code === '23505') { // Chave única (perfil já existe)
+          console.log('[PROFILE_MANAGER] Perfil já existe (erro 23505), buscando...');
+          const { data: existingProfile } = await supabase
+            .from('perfis')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+          return existingProfile || null;
+        }
+
         return null;
       }
 
-      console.log('[PROFILE_MANAGER] Perfil criado com sucesso:', data);
+      console.log('[PROFILE_MANAGER] Perfil criado:', data);
       return data;
     } catch (error) {
       console.error('[PROFILE_MANAGER] Erro inesperado ao criar perfil:', error);
@@ -78,3 +156,4 @@ export const useProfileManager = () => {
     createProfile
   };
 };
+
