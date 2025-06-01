@@ -50,7 +50,10 @@ const UserManagement = () => {
 
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      toast.error('Apenas administradores podem criar usuários');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -82,7 +85,10 @@ const UserManagement = () => {
   };
 
   const updateUser = async (user: Profile) => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      toast.error('Apenas administradores podem atualizar usuários');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -108,7 +114,12 @@ const UserManagement = () => {
   };
 
   const deleteUser = async (userId: string) => {
-    if (!isAdmin || !confirm('Tem certeza que deseja excluir este usuário?')) return;
+    if (!isAdmin) {
+      toast.error('Apenas administradores podem excluir usuários');
+      return;
+    }
+    
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
     setLoading(true);
     try {
@@ -137,7 +148,7 @@ const UserManagement = () => {
         <CardHeader>
           <CardTitle>Acesso Negado</CardTitle>
           <CardDescription>
-            Você não tem permissão para acessar esta área.
+            Você não tem permissão para acessar esta área. Apenas administradores podem gerenciar usuários.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -146,13 +157,16 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Formulário para criar novo usuário */}
+      {/* Formulário para criar novo usuário - APENAS para administradores */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
             Criar Novo Usuário
           </CardTitle>
+          <CardDescription>
+            Apenas administradores podem criar novos usuários no sistema.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={createUser} className="space-y-4">

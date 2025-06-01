@@ -17,6 +17,7 @@ import * as z from 'zod';
 interface UserManagementPanelProps {
   allUsers: UserData[];
   updateUsers: (updatedUsers: UserData[]) => void;
+  isAdmin: boolean;
   isMasterAdmin: boolean;
 }
 
@@ -30,7 +31,7 @@ const userSchema = z.object({
 
 type UserFormData = z.infer<typeof userSchema>;
 
-const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManagementPanelProps) => {
+const UserManagementPanel = ({ allUsers, updateUsers, isAdmin, isMasterAdmin }: UserManagementPanelProps) => {
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   
@@ -46,6 +47,12 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
   });
   
   const handleCreateUser = (data: UserFormData) => {
+    // Verificar se é administrador
+    if (!isAdmin) {
+      toast.error("Apenas administradores podem criar usuários");
+      return;
+    }
+
     // Verificar se já existe um usuário com o mesmo email
     if (allUsers.some(user => user.email === data.email)) {
       toast.error("Já existe um usuário com este e-mail");
@@ -60,9 +67,9 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
       isAdmin: !!data.isAdmin,
       canViewPanels: !!data.canViewPanels,
       isPremium: !!data.isPremium,
-      planoId: data.isPremium ? 'premium' : 'gratuito',
-      limiteCalculosSalvos: data.isPremium ? 999999 : 3,
-      limitePeticoesSalvas: data.isPremium ? 999999 : 1
+      planoId: data.isPremium ? 'premium' : (data.isAdmin ? 'admin' : 'gratuito'),
+      limiteCalculosSalvos: data.isPremium || data.isAdmin ? 999999 : 3,
+      limitePeticoesSalvas: data.isPremium || data.isAdmin ? 999999 : 1
     };
     
     const updatedUsers = [...allUsers, newUser];
@@ -74,6 +81,12 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
   };
   
   const handleDeleteUser = (userId: string) => {
+    // Verificar se é administrador
+    if (!isAdmin) {
+      toast.error("Apenas administradores podem excluir usuários");
+      return;
+    }
+
     // Verificar se é um admin mestre (não permitir exclusão)
     const user = allUsers.find(u => u.id === userId);
     
@@ -131,7 +144,7 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
           <Shield className="mr-2 h-5 w-5" />
           Gerenciamento de Usuários
         </CardTitle>
-        {isMasterAdmin && (
+        {isAdmin && (
           <Button 
             onClick={() => setShowAddUserDialog(true)}
             className="bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90"
@@ -142,244 +155,257 @@ const UserManagementPanel = ({ allUsers, updateUsers, isMasterAdmin }: UserManag
         )}
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Acesso Premium</TableHead>
-                {isMasterAdmin && <TableHead className="text-right">Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allUsers.length === 0 ? (
+        {!isAdmin ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-2">Acesso Restrito</p>
+            <p className="text-sm text-gray-400">
+              Apenas administradores podem acessar o gerenciamento de usuários.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-gray-500">
-                    Nenhum usuário cadastrado no sistema.
-                  </TableCell>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Acesso Premium</TableHead>
+                  {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                 </TableRow>
-              ) : (
-                allUsers.map(user => {
-                  const isMaster = user.email === 'admin@juriscalc.com' || 
-                                  user.email === 'johnnysantos_177@msn.com';
-                  const isPremium = isMaster || user.isPremium;
-                  
-                  return (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          {user.nome}
-                          {isMaster && (
-                            <span className="ml-2 bg-juriscalc-gold text-juriscalc-navy text-xs px-2 py-1 rounded-full inline-flex items-center">
-                              <Shield className="h-3 w-3 mr-1" />
-                              Mestre
+              </TableHeader>
+              <TableBody>
+                {allUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                      Nenhum usuário cadastrado no sistema.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  allUsers.map(user => {
+                    const isMaster = user.email === 'admin@juriscalc.com' || 
+                                    user.email === 'johnnysantos_177@msn.com';
+                    const isPremium = isMaster || user.isPremium;
+                    
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center">
+                            {user.nome}
+                            {isMaster && (
+                              <span className="ml-2 bg-juriscalc-gold text-juriscalc-navy text-xs px-2 py-1 rounded-full inline-flex items-center">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Mestre
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          {user.isAdmin ? (
+                            <span className="bg-juriscalc-gold text-juriscalc-navy px-2 py-1 rounded-full text-xs">
+                              Admin
+                            </span>
+                          ) : (
+                            <span className="bg-juriscalc-lightgray px-2 py-1 rounded-full text-xs">
+                              Usuário
                             </span>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        {user.isAdmin ? (
-                          <span className="bg-juriscalc-gold text-juriscalc-navy px-2 py-1 rounded-full text-xs">
-                            Admin
-                          </span>
-                        ) : (
-                          <span className="bg-juriscalc-lightgray px-2 py-1 rounded-full text-xs">
-                            Usuário
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isMasterAdmin ? (
-                          <Toggle
-                            pressed={isPremium}
-                            onPressedChange={() => togglePremiumAccess(user.id, isPremium)}
-                            disabled={isMaster}
-                            className="data-[state=on]:bg-green-500"
-                            aria-label="Toggle premium access"
-                          >
-                            {isPremium ? (
-                              <span className="flex items-center text-green-600">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Ilimitado
-                              </span>
-                            ) : (
-                              <span className="flex items-center text-gray-500">
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Não
-                              </span>
-                            )}
-                          </Toggle>
-                        ) : (
-                          <span className={`flex items-center ${isPremium ? 'text-green-600' : 'text-gray-500'}`}>
-                            {isPremium ? (
-                              <>
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Ilimitado
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Não
-                              </>
-                            )}
-                          </span>
-                        )}
-                      </TableCell>
-                      {isMasterAdmin && (
-                        <TableCell className="text-right">
-                          {!isMaster && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => setUserToDelete(user.id)}
+                        </TableCell>
+                        <TableCell>
+                          {isMasterAdmin ? (
+                            <Toggle
+                              pressed={isPremium}
+                              onPressedChange={() => togglePremiumAccess(user.id, isPremium)}
+                              disabled={isMaster}
+                              className="data-[state=on]:bg-green-500"
+                              aria-label="Toggle premium access"
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                              {isPremium ? (
+                                <span className="flex items-center text-green-600">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Ilimitado
+                                </span>
+                              ) : (
+                                <span className="flex items-center text-gray-500">
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Não
+                                </span>
+                              )}
+                            </Toggle>
+                          ) : (
+                            <span className={`flex items-center ${isPremium ? 'text-green-600' : 'text-gray-500'}`}>
+                              {isPremium ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Ilimitado
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Não
+                                </>
+                              )}
+                            </span>
                           )}
                         </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                        {isAdmin && (
+                          <TableCell className="text-right">
+                            {!isMaster && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => setUserToDelete(user.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
 
-      {/* Diálogo para adicionar novo usuário */}
-      <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <UserPlus className="h-5 w-5 mr-2" />
-              Adicionar Novo Usuário
-            </DialogTitle>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreateUser)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="nome"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome Completo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Digite o nome completo" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>E-mail</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="usuario@exemplo.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="isAdmin"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="w-4 h-4"
-                      />
-                    </FormControl>
-                    <FormLabel className="mb-0 font-normal">É administrador?</FormLabel>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="canViewPanels"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="w-4 h-4"
-                      />
-                    </FormControl>
-                    <FormLabel className="mb-0 font-normal">Pode visualizar painéis?</FormLabel>
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="isPremium"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="w-4 h-4"
-                      />
-                    </FormControl>
-                    <FormLabel className="mb-0 font-normal">Acesso Premium Ilimitado?</FormLabel>
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowAddUserDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">Criar Usuário</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Diálogo para adicionar novo usuário - APENAS para administradores */}
+      {isAdmin && (
+        <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <UserPlus className="h-5 w-5 mr-2" />
+                Adicionar Novo Usuário
+              </DialogTitle>
+            </DialogHeader>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateUser)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Completo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Digite o nome completo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-mail</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="usuario@exemplo.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="isAdmin"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="w-4 h-4"
+                        />
+                      </FormControl>
+                      <FormLabel className="mb-0 font-normal">É administrador?</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="canViewPanels"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="w-4 h-4"
+                        />
+                      </FormControl>
+                      <FormLabel className="mb-0 font-normal">Pode visualizar painéis?</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="isPremium"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="w-4 h-4"
+                        />
+                      </FormControl>
+                      <FormLabel className="mb-0 font-normal">Acesso Premium Ilimitado?</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setShowAddUserDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Criar Usuário</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Diálogo de confirmação para excluir usuário */}
-      <Dialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center text-red-600">
-              <Trash2 className="h-5 w-5 mr-2" />
-              Excluir Usuário
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <p>Tem certeza que deseja excluir este usuário?</p>
-            <p className="text-sm text-gray-500 mt-2">Esta ação não pode ser desfeita.</p>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUserToDelete(null)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={() => userToDelete && handleDeleteUser(userToDelete)}>
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isAdmin && (
+        <Dialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center text-red-600">
+                <Trash2 className="h-5 w-5 mr-2" />
+                Excluir Usuário
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <p>Tem certeza que deseja excluir este usuário?</p>
+              <p className="text-sm text-gray-500 mt-2">Esta ação não pode ser desfeita.</p>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUserToDelete(null)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={() => userToDelete && handleDeleteUser(userToDelete)}>
+                Excluir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 };

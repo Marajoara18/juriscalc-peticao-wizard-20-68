@@ -3,13 +3,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { useUserManagement } from '@/hooks/useUserManagement';
 import Layout from '@/components/Layout';
-import UserManagement from '@/components/auth/UserManagement';
-import MasterPasswordReset from '@/components/auth/MasterPasswordReset';
+import UserManagementPanel from '@/components/auth/UserManagementPanel';
+import MasterAdminCredentials from '@/components/auth/MasterAdminCredentials';
 
 const UserAccountView = () => {
   const navigate = useNavigate();
   const { user, profile, loading } = useSupabaseAuth();
+  const { userData, isAdmin, isMasterAdmin, allUsers, updateUsers } = useUserManagement();
 
   const handleVoltar = () => {
     console.log('[USER_ACCOUNT_VIEW] Voltando para /home');
@@ -62,9 +64,24 @@ const UserAccountView = () => {
           </Button>
         </div>
         
-        <UserManagement />
-        
-        <MasterPasswordReset />
+        {userData && (
+          <>
+            <UserManagementPanel 
+              allUsers={allUsers}
+              updateUsers={updateUsers}
+              isAdmin={isAdmin}
+              isMasterAdmin={isMasterAdmin}
+            />
+            
+            {isMasterAdmin && (
+              <MasterAdminCredentials 
+                userData={userData}
+                allUsers={allUsers}
+                updateUsers={updateUsers}
+              />
+            )}
+          </>
+        )}
       </div>
     </Layout>
   );

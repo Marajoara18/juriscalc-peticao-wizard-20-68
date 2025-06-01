@@ -8,32 +8,29 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
-  const { user: supabaseUser, profile, loading, signOut } = useSupabaseAuth(); 
+  const { user: supabaseUser, profile, loading, signOut, isAdmin } = useSupabaseAuth(); 
   
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  console.log('[USER_MANAGEMENT] Hook initialized. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading);
+  console.log('[USER_MANAGEMENT] Hook initialized. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading, 'Is Admin:', isAdmin);
 
   useEffect(() => {
-    console.log('[USER_MANAGEMENT] Auth state changed:', { loading, hasUser: !!supabaseUser, hasProfile: !!profile });
+    console.log('[USER_MANAGEMENT] Auth state changed:', { loading, hasUser: !!supabaseUser, hasProfile: !!profile, isAdmin });
     if (!loading && supabaseUser && profile) {
       console.log('[USER_MANAGEMENT] Auth ready, deriving user data and permissions.');
-      const isAdminUser = profile.plano_id === 'admin' || profile.plano_id === 'premium';
       const masterAdminEmails = ['admin@juriscalc.com', 'johnnysantos_177@msn.com']; 
       const isMasterAdminUser = supabaseUser.email ? masterAdminEmails.includes(supabaseUser.email) : false;
 
-      setIsAdmin(isAdminUser);
       setIsMasterAdmin(isMasterAdminUser);
 
       const currentUserData: UserData = {
         id: supabaseUser.id,
         nome: profile.nome_completo,
         email: supabaseUser.email || '',
-        isAdmin: isAdminUser,
+        isAdmin: isAdmin,
         isPremium: profile.plano_id !== 'gratuito',
         canViewPanels: isMasterAdminUser, 
         logoUrl: undefined,
@@ -45,18 +42,17 @@ export const useUserManagement = () => {
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
       setUserData(currentUserData);
 
-      if (isAdminUser) {
+      if (isAdmin) {
         fetchAllUsers();
       }
 
     } else if (!loading && !supabaseUser) {
       console.log('[USER_MANAGEMENT] User logged out or session invalid.');
       setUserData(null);
-      setIsAdmin(false);
       setIsMasterAdmin(false);
       setAllUsers([]);
     }
-  }, [supabaseUser, profile, loading]);
+  }, [supabaseUser, profile, loading, isAdmin]);
 
   const fetchAllUsers = useCallback(async () => {
     console.log('[USER_MANAGEMENT] Fetching all users from Supabase...');
@@ -113,6 +109,10 @@ export const useUserManagement = () => {
     setUserData(prevData => prevData ? { ...prevData, ...updatedData } : null);
   };
 
+  const updateUsers = (updatedUsers: UserData[]) => {
+    setAllUsers(updatedUsers);
+  };
+
   return {
     userData,
     isAdmin,
@@ -122,6 +122,7 @@ export const useUserManagement = () => {
     fetchAllUsers,
     handleLogout,
     updateCurrentUserData,
+    updateUsers,
     loading
   };
 };
