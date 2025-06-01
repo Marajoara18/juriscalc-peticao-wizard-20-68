@@ -7,7 +7,6 @@ import UserAvatar from './profile/UserAvatar';
 import UserInfo from './profile/UserInfo';
 import LogoUploadDialog from './profile/LogoUploadDialog';
 import ChangePasswordSection from './profile/ChangePasswordSection';
-import UploadLogoForm from './UploadLogoForm';
 import { UserData } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 
@@ -120,9 +119,6 @@ const UserProfile = ({ userData, isMasterAdmin, onLogout, updateUserData }: User
           </div>
         </CardContent>
       </Card>
-
-      {/* Upload de Logo/Foto */}
-      <UploadLogoForm />
 
       {/* Alteração de Senha */}
       <ChangePasswordSection />
