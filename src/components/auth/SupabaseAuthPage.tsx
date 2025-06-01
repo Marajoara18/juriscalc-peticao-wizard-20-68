@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,7 +93,7 @@ const SupabaseAuthPage = () => {
         <div className="text-center mb-6">
           <div className="bg-white p-2 rounded-lg inline-block mb-4">
             <img 
-              src="/lovable-uploads/caf683c7-0cb3-4ef4-8e5f-5de22f996b8a.png"
+              src="/lovable-uploads/2dd8ec7a-6e0c-401d-9584-46801524c4cb.png"
               alt="IusCalc Logo"
               className="h-16 w-auto"
             />

@@ -80,9 +80,11 @@ export type Database = {
           id: string
           limite_calculos_salvos: number | null
           limite_peticoes_salvas: number | null
+          logo_url: string | null
           nome_completo: string
           oab: string | null
           plano_id: string | null
+          telefone: string | null
         }
         Insert: {
           data_atualizacao?: string
@@ -91,9 +93,11 @@ export type Database = {
           id: string
           limite_calculos_salvos?: number | null
           limite_peticoes_salvas?: number | null
+          logo_url?: string | null
           nome_completo: string
           oab?: string | null
           plano_id?: string | null
+          telefone?: string | null
         }
         Update: {
           data_atualizacao?: string
@@ -102,9 +106,11 @@ export type Database = {
           id?: string
           limite_calculos_salvos?: number | null
           limite_peticoes_salvas?: number | null
+          logo_url?: string | null
           nome_completo?: string
           oab?: string | null
           plano_id?: string | null
+          telefone?: string | null
         }
         Relationships: []
       }
@@ -146,7 +152,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

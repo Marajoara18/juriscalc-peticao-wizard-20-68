@@ -5,7 +5,7 @@ const AuthLogo: React.FC = () => {
   return (
     <div className="text-center flex flex-col items-center justify-center">
       <img 
-        src="/lovable-uploads/caf683c7-0cb3-4ef4-8e5f-5de22f996b8a.png"
+        src="/lovable-uploads/2dd8ec7a-6e0c-401d-9584-46801524c4cb.png"
         alt="Logo"
         className="h-28 w-auto mb-3"
         style={{ minWidth: 160 }}
