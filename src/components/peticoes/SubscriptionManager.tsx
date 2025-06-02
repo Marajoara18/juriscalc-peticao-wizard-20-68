@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +51,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onClose }) =>
               <div className="bg-gray-50 p-4 rounded-md">
                 <h3 className="font-medium mb-2">Plano Gratuito</h3>
                 <ul className="text-sm space-y-1">
-                  <li>• Limite de 3 petições</li>
+                  <li>• Limite de 6 petições</li>
                   <li>• Modelos básicos</li>
                   <li>• Calculadora com recursos limitados</li>
                 </ul>

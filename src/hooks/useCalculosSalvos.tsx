@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
@@ -49,8 +48,8 @@ export const useCalculosSalvos = (
     
     // Verificar se o usuário atingiu o limite de cálculos salvos (apenas para usuários não premium)
     const isPremium = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'admin';
-    // Lê o limite de cálculos salvos do perfil do usuário, com fallback para 3 se não definido (segurança)
-    const limiteSalvos = profile?.limite_calculos_salvos ?? 3;
+    // Lê o limite de cálculos salvos do perfil do usuário, com fallback para 6 se não definido (segurança)
+    const limiteSalvos = profile?.limite_calculos_salvos ?? 6;
     
     if (!isPremium && calculosSalvos.length >= limiteSalvos && !editandoId) {
       toast.error(`Você atingiu o limite de ${limiteSalvos} cálculos salvos. Apague algum cálculo para adicionar um novo ou faça upgrade para o plano premium.`);
@@ -75,8 +74,8 @@ export const useCalculosSalvos = (
 
     // Verificar novamente o limite (para caso de edições concorrentes) - apenas para usuários não premium
     const isPremium = profile?.plano_id === 'premium_mensal' || profile?.plano_id === 'premium_anual' || profile?.plano_id === 'admin';
-    // Lê o limite de cálculos salvos do perfil do usuário, com fallback para 3 se não definido (segurança)
-    const limiteSalvos = profile?.limite_calculos_salvos ?? 3;
+    // Lê o limite de cálculos salvos do perfil do usuário, com fallback para 6 se não definido (segurança)
+    const limiteSalvos = profile?.limite_calculos_salvos ?? 6;
     
     if (!isPremium && calculosSalvos.length >= limiteSalvos && !editandoId) {
       toast.error(`Você atingiu o limite de ${limiteSalvos} cálculos salvos. Apague algum cálculo para adicionar um novo ou faça upgrade para o plano premium.`);

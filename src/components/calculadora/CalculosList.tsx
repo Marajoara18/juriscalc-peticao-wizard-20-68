@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { CalculoSalvo } from '@/types/calculoSalvo';
 import CalculoItem from './CalculoItem';
@@ -29,8 +28,8 @@ const CalculosList: React.FC<CalculosListProps> = ({
 }) => {
   const { profile } = useSupabaseAuth();
   
-  // Constante para o limite máximo de cálculos para usuários não premium - corrigido para 3
-  const LIMITE_CALCULOS = 3;
+  // Constante para o limite máximo de cálculos para usuários não premium - corrigido para 6
+  const LIMITE_CALCULOS = 6;
   const isPremium = profile?.plano_id?.includes('premium') || profile?.plano_id === 'admin';
   const calculosRestantes = isPremium ? 'Ilimitado' : Math.max(0, LIMITE_CALCULOS - calculosFiltrados.length);
 

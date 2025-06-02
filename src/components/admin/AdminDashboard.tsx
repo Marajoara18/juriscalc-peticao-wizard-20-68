@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useAdminManagement } from '@/hooks/admin/useAdminManagement';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { UpdateLimits } from '@/scripts/updateLimits';
 
 const AdminDashboard = () => {
   const { profiles, loading, updateUserPlan, deleteUser, createMasterAdmin } = useAdminManagement();
@@ -206,6 +206,9 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        <UpdateLimits />
+
       </div>
 
       {/* Dialog de confirmação de exclusão */}

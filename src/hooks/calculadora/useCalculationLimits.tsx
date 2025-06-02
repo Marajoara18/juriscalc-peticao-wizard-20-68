@@ -1,11 +1,26 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
 const LIMITE_CALCULOS_GRATUITOS = 6;
-const KEY_CONTADOR_CALCULOS = 'calculosRealizados';
+const STORAGE_VERSION = 'v2'; // Adicionando versão ao storage
+const KEY_CONTADOR_CALCULOS = `calculosRealizados_${STORAGE_VERSION}`;
+
+// Função para limpar chaves antigas
+const limparContadoresAntigos = (userId: string) => {
+  const keys = Object.keys(localStorage);
+  const oldKeys = keys.filter(key => 
+    key.startsWith('calculosRealizados') && 
+    !key.includes(STORAGE_VERSION) &&
+    key.includes(userId)
+  );
+  
+  oldKeys.forEach(key => {
+    console.log('CALCULATION_LIMITS: Removing old counter:', key);
+    localStorage.removeItem(key);
+  });
+};
 
 export const useCalculationLimits = () => {
   const { user, profile } = useSupabaseAuth();
@@ -26,6 +41,9 @@ export const useCalculationLimits = () => {
 
     const userId = user.id;
     
+    // Limpar contadores antigos
+    limparContadoresAntigos(userId);
+    
     // Verificar número de cálculos realizados
     const calculosKey = `${KEY_CONTADOR_CALCULOS}_${userId}`;
     const calculosRealizados = localStorage.getItem(calculosKey) 
@@ -41,6 +59,7 @@ export const useCalculationLimits = () => {
       calculosRealizados,
       hasUnlimited,
       planId: profile?.plano_id,
+      version: STORAGE_VERSION,
       remainingCalculations: hasUnlimited ? 'unlimited' : Math.max(0, LIMITE_CALCULOS_GRATUITOS - calculosRealizados)
     });
     
@@ -68,6 +87,9 @@ export const useCalculationLimits = () => {
 
     const userId = user.id;
     
+    // Limpar contadores antigos antes de verificar
+    limparContadoresAntigos(userId);
+    
     // Usar a função centralizada para verificar acesso ilimitado
     const hasUnlimited = hasUnlimitedAccess(profile, user.email);
     
@@ -75,7 +97,8 @@ export const useCalculationLimits = () => {
       userId, 
       userEmail: user.email,
       hasUnlimited,
-      planId: profile?.plano_id
+      planId: profile?.plano_id,
+      version: STORAGE_VERSION
     });
     
     // Para usuários com acesso ilimitado, não há limitação

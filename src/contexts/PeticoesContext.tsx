@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -87,8 +86,8 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
   const handleNovaPeticao = () => {
     if (!isPremium) {
       const count = parseInt(localStorage.getItem('peticoesCount') || '0');
-      if (count >= 3) {
-        toast.error('Você atingiu o limite de 3 petições gratuitas. Assine o plano premium para continuar.');
+      if (count >= 6) {
+        toast.error('Você atingiu o limite de 6 petições gratuitas. Assine o plano premium para continuar.');
         return;
       }
     }
@@ -101,8 +100,8 @@ export const PeticoesProvider: React.FC<{ children: ReactNode }> = ({ children }
   const handleUseModelo = (id: number) => {
     if (!isPremium) {
       const count = parseInt(localStorage.getItem('peticoesCount') || '0');
-      if (count >= 3) {
-        toast.error('Você atingiu o limite de 3 petições gratuitas. Assine o plano premium para continuar.');
+      if (count >= 6) {
+        toast.error('Você atingiu o limite de 6 petições gratuitas. Assine o plano premium para continuar.');
         return;
       }
     }

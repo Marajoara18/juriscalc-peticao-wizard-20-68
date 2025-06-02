@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,8 +7,8 @@ type Profile = Database['public']['Tables']['perfis']['Row'];
 
 const PLANO_LIMITES = {
   gratuito: {
-    calculos: 3,
-    peticoes: 1
+    calculos: 6,
+    peticoes: 6
   },
   premium: {
     calculos: 999999,

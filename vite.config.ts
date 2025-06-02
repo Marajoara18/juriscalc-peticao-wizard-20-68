@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Adicionar o host público temporário à lista de hosts permitidos
+    allowedHosts: ["8081-i4fvjyilvl6nwjlsd7s6h-dd63a0af.manusvm.computer"],
   },
   plugins: [
     react(),
@@ -20,3 +22,4 @@ export default defineConfig(({ mode }) => ({
     },
   },
 }));
+

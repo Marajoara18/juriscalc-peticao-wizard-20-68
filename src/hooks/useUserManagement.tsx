@@ -1,10 +1,25 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UserData } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
+
+// Definir limites padrão
+const LIMITES_PADRAO = {
+  gratuito: {
+    calculos: 6,
+    peticoes: 6
+  },
+  premium: {
+    calculos: 999999,
+    peticoes: 999999
+  },
+  admin: {
+    calculos: 999999,
+    peticoes: 999999
+  }
+};
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
@@ -29,6 +44,10 @@ export const useUserManagement = () => {
       setIsAdmin(isAdminUser);
       setIsMasterAdmin(isMasterAdminUser);
 
+      // Determinar os limites com base no plano
+      const planoAtual = profile.plano_id || 'gratuito';
+      const limites = LIMITES_PADRAO[planoAtual as keyof typeof LIMITES_PADRAO] || LIMITES_PADRAO.gratuito;
+
       const currentUserData: UserData = {
         id: supabaseUser.id,
         nome: profile.nome_completo,
@@ -38,9 +57,9 @@ export const useUserManagement = () => {
         canViewPanels: isMasterAdminUser, 
         logoUrl: undefined,
         oab: profile.oab || undefined,
-        planoId: profile.plano_id || 'gratuito',
-        limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
-        limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
+        planoId: planoAtual,
+        limiteCalculosSalvos: profile.limite_calculos_salvos || limites.calculos,
+        limitePeticoesSalvas: profile.limite_peticoes_salvas || limites.peticoes
       };
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
       setUserData(currentUserData);
@@ -73,19 +92,24 @@ export const useUserManagement = () => {
       } else {
         console.log('[USER_MANAGEMENT] Users fetched successfully:', data.length);
         // Convert to UserData format
-        const mappedUsers: UserData[] = (data || []).map(profile => ({
-          id: profile.id,
-          nome: profile.nome_completo,
-          email: profile.email,
-          isAdmin: profile.plano_id === 'admin',
-          isPremium: profile.plano_id !== 'gratuito',
-          canViewPanels: false,
-          logoUrl: undefined,
-          oab: profile.oab || undefined,
-          planoId: profile.plano_id || 'gratuito',
-          limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
-          limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
-        }));
+        const mappedUsers: UserData[] = (data || []).map(profile => {
+          const planoAtual = profile.plano_id || 'gratuito';
+          const limites = LIMITES_PADRAO[planoAtual as keyof typeof LIMITES_PADRAO] || LIMITES_PADRAO.gratuito;
+          
+          return {
+            id: profile.id,
+            nome: profile.nome_completo,
+            email: profile.email,
+            isAdmin: profile.plano_id === 'admin',
+            isPremium: profile.plano_id !== 'gratuito',
+            canViewPanels: false,
+            logoUrl: undefined,
+            oab: profile.oab || undefined,
+            planoId: planoAtual,
+            limiteCalculosSalvos: profile.limite_calculos_salvos || limites.calculos,
+            limitePeticoesSalvas: profile.limite_peticoes_salvas || limites.peticoes
+          };
+        });
         setAllUsers(mappedUsers); 
       }
     } catch (error) {
