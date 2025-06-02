@@ -18,8 +18,15 @@ import PasswordResetRequest from "./components/auth/PasswordResetRequest";
 import PasswordReset from "./components/auth/PasswordReset";
 
 const App = () => {
-  // Create a client inside the component function
-  const queryClient = new QueryClient();
+  // Create a client outside the component to prevent recreation on every render
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
   
   return (
     <StrictMode>

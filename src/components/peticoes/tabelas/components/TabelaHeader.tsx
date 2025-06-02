@@ -39,7 +39,7 @@ const TabelaHeader: React.FC<TabelaHeaderProps> = ({
     <div className="flex items-center justify-between">
       <div className="flex items-center">
         <img 
-          src="/lovable-uploads/caf683c7-0cb3-4ef4-8e5f-5de22f996b8a.png"
+          src="/lovable-uploads/2dd8ec7a-6e0c-401d-9584-46801524c4cb.png"
           alt="IusCalc Logo" 
           className="h-8 mr-3" 
         />

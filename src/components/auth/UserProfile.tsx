@@ -6,6 +6,7 @@ import { LogOut, Crown, Shield } from "lucide-react";
 import UserAvatar from './profile/UserAvatar';
 import UserInfo from './profile/UserInfo';
 import LogoUploadDialog from './profile/LogoUploadDialog';
+import ChangePasswordSection from './profile/ChangePasswordSection';
 import { UserData } from '@/types/user';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 
@@ -79,8 +80,48 @@ const UserProfile = ({ userData, isMasterAdmin, onLogout, updateUserData }: User
               </div>
             </div>
           )}
+
+          {/* Informações do Plano */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-juriscalc-navy mb-2">Informações do Plano</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Tipo de Conta:</span>
+                <span className="ml-2">
+                  {userData.isAdmin 
+                    ? isMasterAdmin 
+                      ? 'Administrador Mestre' 
+                      : 'Administrador' 
+                    : userData.isPremium 
+                      ? 'Premium' 
+                      : 'Gratuito'}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Limite de Cálculos:</span>
+                <span className="ml-2">
+                  {userData.limiteCalculosSalvos === 999999 ? 'Ilimitado' : userData.limiteCalculosSalvos}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Limite de Petições:</span>
+                <span className="ml-2">
+                  {userData.limitePeticoesSalvas === 999999 ? 'Ilimitado' : userData.limitePeticoesSalvas}
+                </span>
+              </div>
+              {userData.oab && (
+                <div>
+                  <span className="font-medium">OAB:</span>
+                  <span className="ml-2">{userData.oab}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Alteração de Senha */}
+      <ChangePasswordSection />
 
       <LogoUploadDialog
         open={logoDialogOpen}

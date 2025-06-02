@@ -1,94 +1,125 @@
 
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { Button } from '@/components/ui/button';
+import { UserPlus } from 'lucide-react';
+import { useAuthRegister } from '@/hooks/auth/useAuthRegister';
 
-const SupabaseRegisterForm = () => {
+const SupabaseRegisterForm: React.FC = () => {
+  const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { signUp } = useSupabaseAuth();
+  const [telefone, setTelefone] = useState('');
+  const [senha, setSenha] = useState('');
+  const [confirmSenha, setConfirmSenha] = useState('');
+  const { register, loading } = useAuthRegister();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem');
+    if (senha !== confirmSenha) {
+      console.error('Senhas não coincidem');
       return;
     }
 
-    setIsLoading(true);
-    
-    try {
-      const { error } = await signUp(email, password, fullName);
-
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Conta criada com sucesso! Verifique seu email.');
-      }
-    } catch (error: any) {
-      toast.error('Erro ao criar conta: ' + (error.message || 'Erro desconhecido'));
-    } finally {
-      setIsLoading(false);
-    }
+    await register({ nome, email, telefone, senha, confirmSenha });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="fullName">Nome Completo</Label>
-        <Input
-          id="fullName"
-          type="text"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="password">Senha</Label>
-        <Input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      
-      <div>
-        <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-        />
-      </div>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? 'Criando conta...' : 'Criar Conta'}
-      </Button>
-    </form>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-center">Crie sua conta</CardTitle>
+        <CardDescription className="text-center">
+          Preencha os dados abaixo para se cadastrar
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="nome" className="block text-sm font-medium">
+              Nome Completo
+            </label>
+            <Input
+              id="nome"
+              type="text"
+              placeholder="Seu nome completo"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="email-cadastro" className="block text-sm font-medium">
+              E-mail
+            </label>
+            <Input
+              id="email-cadastro"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="telefone-cadastro" className="block text-sm font-medium">
+              Telefone (WhatsApp)
+            </label>
+            <Input
+              id="telefone-cadastro"
+              type="tel"
+              placeholder="(XX) XXXXX-XXXX"
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="senha-cadastro" className="block text-sm font-medium">
+              Senha
+            </label>
+            <Input
+              id="senha-cadastro"
+              type="password"
+              placeholder="Crie uma senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              disabled={loading}
+              minLength={6}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="confirm-senha" className="block text-sm font-medium">
+              Confirmar Senha
+            </label>
+            <Input
+              id="confirm-senha"
+              type="password"
+              placeholder="Confirme sua senha"
+              value={confirmSenha}
+              onChange={(e) => setConfirmSenha(e.target.value)}
+              required
+              disabled={loading}
+              minLength={6}
+            />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            type="submit" 
+            className="w-full bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90"
+            disabled={loading}
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            {loading ? 'Cadastrando...' : 'Cadastrar'}
+          </Button>
+        </CardFooter>
+      </form>
+    </Card>
   );
 };
 

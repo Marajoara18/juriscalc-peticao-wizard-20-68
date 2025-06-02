@@ -13,13 +13,12 @@ interface RegisterFormProps {
 const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState(''); // Adicionado estado para telefone
+  const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmSenha, setConfirmSenha] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Incluir telefone no objeto de dados submetido
     onSubmit({ nome, email, telefone, senha, confirmSenha }); 
   };
 
@@ -59,19 +58,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
               required
             />
           </div>
-          {/* Campo de Telefone Adicionado */}
           <div className="space-y-2">
             <label htmlFor="telefone-cadastro" className="block text-sm font-medium">
               Telefone (WhatsApp)
             </label>
             <Input
               id="telefone-cadastro"
-              type="tel" // Usar type="tel" para semântica e potencial formatação móvel
+              type="tel"
               placeholder="(XX) XXXXX-XXXX"
               value={telefone}
-              onChange={(e) => setTelefone(e.target.value)} 
-              // Opcional: Adicionar validação de formato ou máscara aqui ou no onChange
-              required // Definir como obrigatório se necessário
+              onChange={(e) => setTelefone(e.target.value)}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -113,4 +110,3 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
 };
 
 export default RegisterForm;
-

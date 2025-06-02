@@ -8,8 +8,13 @@ let createAttempted = false;
 // Define os limites aqui também para consistência na criação
 const PLANO_LIMITES = {
   gratuito: {
+<<<<<<< HEAD
     calculos: 6, // Limite de cálculos salvos
     peticoes: 6
+=======
+    calculos: 6, // Corrigido para 6 cálculos salvos
+    peticoes: 1
+>>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
   },
   premium: {
     calculos: 999999,
@@ -54,11 +59,6 @@ export const useProfileManager = () => {
 
         if (isPolicyError || !profileData) {
           console.log('[PROFILE_MANAGER] Perfil não encontrado ou erro de política. Tentando criar perfil (via fetch)...');
-          // Tentativa de criação agora requer mais dados, idealmente o fluxo de signup chama createProfile diretamente
-          // Se chegarmos aqui, significa que o signup pode ter falhado em criar o perfil ou houve um erro.
-          // Não temos nome/telefone aqui, então a criação pode falhar ou ficar incompleta.
-          // Considerar remover a chamada a createProfile daqui e garantir que o signup sempre a chame.
-          // Por ora, tentaremos criar com dados mínimos, mas isso não é ideal.
           const { data: userData } = await supabase.auth.getUser();
           if (userData.user) {
               createAttempted = true;
@@ -66,7 +66,7 @@ export const useProfileManager = () => {
                   userId: userId,
                   email: userData.user.email || '',
                   nomeCompleto: userData.user.user_metadata?.nome_completo || userData.user.email?.split('@')[0] || 'Usuário',
-                  // Telefone não disponível neste fluxo
+                  telefone: userData.user.user_metadata?.telefone
               });
               createAttempted = false;
               return created;
@@ -84,9 +84,7 @@ export const useProfileManager = () => {
         createAttempted = false;
         return profileData;
       } else {
-        // Este caso também indica que o perfil não existe.
         console.log('[PROFILE_MANAGER] Perfil não existe (caso raro após maybeSingle sem erro).');
-        // Não tentar criar aqui para evitar loops e falta de dados.
         return null;
       }
     } catch (error) {
@@ -155,4 +153,3 @@ export const useProfileManager = () => {
     createProfile
   };
 };
-

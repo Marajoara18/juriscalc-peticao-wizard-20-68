@@ -31,6 +31,7 @@ export const useSupabaseAuth = () => {
   return {
     user,
     profile,
+    setProfile,
     loading,
     isPremium,
     isAdmin,

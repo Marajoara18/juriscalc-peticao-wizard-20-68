@@ -23,25 +23,22 @@ const LIMITES_PADRAO = {
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
-  const { user: supabaseUser, profile, loading, signOut } = useSupabaseAuth(); 
+  const { user: supabaseUser, profile, loading, signOut, isAdmin } = useSupabaseAuth(); 
   
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isMasterAdmin, setIsMasterAdmin] = useState(false);
   const [allUsers, setAllUsers] = useState<UserData[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  console.log('[USER_MANAGEMENT] Hook initialized. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading);
+  console.log('[USER_MANAGEMENT] Hook initialized. Supabase user:', !!supabaseUser, 'Profile:', !!profile, 'Loading:', loading, 'Is Admin:', isAdmin);
 
   useEffect(() => {
-    console.log('[USER_MANAGEMENT] Auth state changed:', { loading, hasUser: !!supabaseUser, hasProfile: !!profile });
+    console.log('[USER_MANAGEMENT] Auth state changed:', { loading, hasUser: !!supabaseUser, hasProfile: !!profile, isAdmin });
     if (!loading && supabaseUser && profile) {
       console.log('[USER_MANAGEMENT] Auth ready, deriving user data and permissions.');
-      const isAdminUser = profile.plano_id === 'admin' || profile.plano_id === 'premium';
       const masterAdminEmails = ['admin@juriscalc.com', 'johnnysantos_177@msn.com']; 
       const isMasterAdminUser = supabaseUser.email ? masterAdminEmails.includes(supabaseUser.email) : false;
 
-      setIsAdmin(isAdminUser);
       setIsMasterAdmin(isMasterAdminUser);
 
       // Determinar os limites com base no plano
@@ -52,30 +49,35 @@ export const useUserManagement = () => {
         id: supabaseUser.id,
         nome: profile.nome_completo,
         email: supabaseUser.email || '',
-        isAdmin: isAdminUser,
+        isAdmin: isAdmin,
         isPremium: profile.plano_id !== 'gratuito',
         canViewPanels: isMasterAdminUser, 
         logoUrl: undefined,
         oab: profile.oab || undefined,
+<<<<<<< HEAD
         planoId: planoAtual,
         limiteCalculosSalvos: profile.limite_calculos_salvos || limites.calculos,
         limitePeticoesSalvas: profile.limite_peticoes_salvas || limites.peticoes
+=======
+        planoId: profile.plano_id || 'gratuito',
+        limiteCalculosSalvos: profile.limite_calculos_salvos || 6, // Alterado de 3 para 6
+        limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
+>>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
       };
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
       setUserData(currentUserData);
 
-      if (isAdminUser) {
+      if (isAdmin) {
         fetchAllUsers();
       }
 
     } else if (!loading && !supabaseUser) {
       console.log('[USER_MANAGEMENT] User logged out or session invalid.');
       setUserData(null);
-      setIsAdmin(false);
       setIsMasterAdmin(false);
       setAllUsers([]);
     }
-  }, [supabaseUser, profile, loading]);
+  }, [supabaseUser, profile, loading, isAdmin]);
 
   const fetchAllUsers = useCallback(async () => {
     console.log('[USER_MANAGEMENT] Fetching all users from Supabase...');
@@ -91,6 +93,7 @@ export const useUserManagement = () => {
         setAllUsers([]);
       } else {
         console.log('[USER_MANAGEMENT] Users fetched successfully:', data.length);
+<<<<<<< HEAD
         // Convert to UserData format
         const mappedUsers: UserData[] = (data || []).map(profile => {
           const planoAtual = profile.plano_id || 'gratuito';
@@ -110,6 +113,22 @@ export const useUserManagement = () => {
             limitePeticoesSalvas: profile.limite_peticoes_salvas || limites.peticoes
           };
         });
+=======
+        // Convert to UserData format - atualizado limite padrão para 6
+        const mappedUsers: UserData[] = (data || []).map(profile => ({
+          id: profile.id,
+          nome: profile.nome_completo,
+          email: profile.email,
+          isAdmin: profile.plano_id === 'admin',
+          isPremium: profile.plano_id !== 'gratuito',
+          canViewPanels: false,
+          logoUrl: undefined,
+          oab: profile.oab || undefined,
+          planoId: profile.plano_id || 'gratuito',
+          limiteCalculosSalvos: profile.limite_calculos_salvos || 6, // Alterado de 3 para 6
+          limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
+        }));
+>>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
         setAllUsers(mappedUsers); 
       }
     } catch (error) {
@@ -137,6 +156,10 @@ export const useUserManagement = () => {
     setUserData(prevData => prevData ? { ...prevData, ...updatedData } : null);
   };
 
+  const updateUsers = (updatedUsers: UserData[]) => {
+    setAllUsers(updatedUsers);
+  };
+
   return {
     userData,
     isAdmin,
@@ -146,6 +169,7 @@ export const useUserManagement = () => {
     fetchAllUsers,
     handleLogout,
     updateCurrentUserData,
+    updateUsers,
     loading
   };
 };
