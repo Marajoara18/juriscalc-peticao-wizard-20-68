@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -36,7 +35,7 @@ export const useUserManagement = () => {
         logoUrl: undefined,
         oab: profile.oab || undefined,
         planoId: profile.plano_id || 'gratuito',
-        limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
+        limiteCalculosSalvos: profile.limite_calculos_salvos || 6, // Alterado de 3 para 6
         limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
       };
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
@@ -68,7 +67,7 @@ export const useUserManagement = () => {
         setAllUsers([]);
       } else {
         console.log('[USER_MANAGEMENT] Users fetched successfully:', data.length);
-        // Convert to UserData format
+        // Convert to UserData format - atualizado limite padrão para 6
         const mappedUsers: UserData[] = (data || []).map(profile => ({
           id: profile.id,
           nome: profile.nome_completo,
@@ -79,7 +78,7 @@ export const useUserManagement = () => {
           logoUrl: undefined,
           oab: profile.oab || undefined,
           planoId: profile.plano_id || 'gratuito',
-          limiteCalculosSalvos: profile.limite_calculos_salvos || 3,
+          limiteCalculosSalvos: profile.limite_calculos_salvos || 6, // Alterado de 3 para 6
           limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
         }));
         setAllUsers(mappedUsers); 

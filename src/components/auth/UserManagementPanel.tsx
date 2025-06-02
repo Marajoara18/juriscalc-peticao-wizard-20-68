@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,7 +67,7 @@ const UserManagementPanel = ({ allUsers, updateUsers, isAdmin, isMasterAdmin }: 
       canViewPanels: !!data.canViewPanels,
       isPremium: !!data.isPremium,
       planoId: data.isPremium ? 'premium' : (data.isAdmin ? 'admin' : 'gratuito'),
-      limiteCalculosSalvos: data.isPremium || data.isAdmin ? 999999 : 3,
+      limiteCalculosSalvos: data.isPremium || data.isAdmin ? 999999 : 6, // Alterado de 3 para 6
       limitePeticoesSalvas: data.isPremium || data.isAdmin ? 999999 : 1
     };
     
@@ -123,7 +122,7 @@ const UserManagementPanel = ({ allUsers, updateUsers, isAdmin, isMasterAdmin }: 
           ...user, 
           isPremium: !currentValue,
           planoId: !currentValue ? 'premium' : 'gratuito',
-          limiteCalculosSalvos: !currentValue ? 999999 : 3,
+          limiteCalculosSalvos: !currentValue ? 999999 : 6, // Alterado de 3 para 6
           limitePeticoesSalvas: !currentValue ? 999999 : 1
         };
       }
