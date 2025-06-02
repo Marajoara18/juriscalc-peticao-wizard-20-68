@@ -9,7 +9,7 @@ let createAttempted = false;
 // Define os limites aqui também para consistência na criação
 const PLANO_LIMITES = {
   gratuito: {
-    calculos: 6, // Alterado de 3 para 6 cálculos salvos
+    calculos: 6, // Corrigido para 6 cálculos salvos
     peticoes: 1
   },
   premium: {

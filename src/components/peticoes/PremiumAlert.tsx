@@ -6,7 +6,7 @@ import { AlertCircle } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
-const LIMITE_CALCULOS_GRATUITOS = 6; // Alterado de 3 para 6 cálculos
+const LIMITE_CALCULOS_GRATUITOS = 6; // Corrigido para 6 cálculos
 const KEY_CONTADOR_CALCULOS = 'calculosRealizados';
 
 const PremiumAlert = () => {
