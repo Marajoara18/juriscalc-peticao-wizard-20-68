@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,7 +63,7 @@ export const useAuthOperations = ({
     }
   };
 
-  const signUp = async (email: string, password: string, nome: string) => {
+  const signUp = async (email: string, password: string, nome: string, telefone?: string) => {
     console.log('AUTH_OPERATIONS: Tentativa de cadastro para:', email);
     try {
       setLoading(true);
@@ -74,7 +73,8 @@ export const useAuthOperations = ({
         password,
         options: {
           data: {
-            nome_completo: nome
+            nome_completo: nome,
+            telefone: telefone
           }
         }
       });

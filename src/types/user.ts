@@ -1,4 +1,3 @@
-
 export interface UserData {
   id: string;
   nome: string; // Mapeado de nome_completo
@@ -8,6 +7,7 @@ export interface UserData {
   canViewPanels: boolean;
   logoUrl?: string;
   oab?: string;
+  telefone?: string;
   planoId: string; // Mapeado de plano_id
   limiteCalculosSalvos?: number;
   limitePeticoesSalvas?: number;
@@ -19,6 +19,7 @@ export interface UserProfile {
   email: string;
   plano_id: string;
   oab?: string;
+  telefone?: string;
   data_criacao: string;
   data_atualizacao: string;
   limite_calculos_salvos?: number;

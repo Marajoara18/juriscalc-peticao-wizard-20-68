@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Profile } from './types';
@@ -29,7 +28,12 @@ export const useAuthState = ({ fetchProfile, setProfile }: UseAuthStateProps) =>
         console.log('[AUTH_STATE] Sessão encontrada:', session.user.id, session.user.email);
         const userData: User = {
           id: session.user.id,
-          email: session.user.email || ''
+          email: session.user.email || '',
+          telefone: session.user.user_metadata?.telefone,
+          user_metadata: {
+            nome_completo: session.user.user_metadata?.nome_completo,
+            telefone: session.user.user_metadata?.telefone
+          }
         };
         setUser(userData);
 
@@ -82,7 +86,12 @@ export const useAuthState = ({ fetchProfile, setProfile }: UseAuthStateProps) =>
         
         const userData: User = {
           id: session.user.id,
-          email: session.user.email || ''
+          email: session.user.email || '',
+          telefone: session.user.user_metadata?.telefone,
+          user_metadata: {
+            nome_completo: session.user.user_metadata?.nome_completo,
+            telefone: session.user.user_metadata?.telefone
+          }
         };
         setUser(userData);
 

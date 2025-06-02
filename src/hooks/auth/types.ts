@@ -1,11 +1,10 @@
-
 export interface Profile {
   id: string;
   nome_completo: string;
   email: string;
   plano_id: string;
   oab?: string;
-  telefone?: string; // Campo telefone adicionado
+  telefone?: string;
   logo_url?: string;
   data_criacao: string;
   data_atualizacao: string;
@@ -16,6 +15,11 @@ export interface Profile {
 export interface User {
   id: string;
   email: string;
+  telefone?: string;
+  user_metadata?: {
+    nome_completo?: string;
+    telefone?: string;
+  };
 }
 
 export interface AuthState {

@@ -54,15 +54,10 @@ export const useUserManagement = () => {
         canViewPanels: isMasterAdminUser, 
         logoUrl: undefined,
         oab: profile.oab || undefined,
-<<<<<<< HEAD
+        telefone: profile.telefone || undefined,
         planoId: planoAtual,
         limiteCalculosSalvos: profile.limite_calculos_salvos || limites.calculos,
         limitePeticoesSalvas: profile.limite_peticoes_salvas || limites.peticoes
-=======
-        planoId: profile.plano_id || 'gratuito',
-        limiteCalculosSalvos: profile.limite_calculos_salvos || 6, // Alterado de 3 para 6
-        limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
->>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
       };
       console.log('[USER_MANAGEMENT] UserData derived:', currentUserData);
       setUserData(currentUserData);
@@ -93,7 +88,6 @@ export const useUserManagement = () => {
         setAllUsers([]);
       } else {
         console.log('[USER_MANAGEMENT] Users fetched successfully:', data.length);
-<<<<<<< HEAD
         // Convert to UserData format
         const mappedUsers: UserData[] = (data || []).map(profile => {
           const planoAtual = profile.plano_id || 'gratuito';
@@ -108,27 +102,12 @@ export const useUserManagement = () => {
             canViewPanels: false,
             logoUrl: undefined,
             oab: profile.oab || undefined,
+            telefone: profile.telefone || undefined,
             planoId: planoAtual,
             limiteCalculosSalvos: profile.limite_calculos_salvos || limites.calculos,
             limitePeticoesSalvas: profile.limite_peticoes_salvas || limites.peticoes
           };
         });
-=======
-        // Convert to UserData format - atualizado limite padrão para 6
-        const mappedUsers: UserData[] = (data || []).map(profile => ({
-          id: profile.id,
-          nome: profile.nome_completo,
-          email: profile.email,
-          isAdmin: profile.plano_id === 'admin',
-          isPremium: profile.plano_id !== 'gratuito',
-          canViewPanels: false,
-          logoUrl: undefined,
-          oab: profile.oab || undefined,
-          planoId: profile.plano_id || 'gratuito',
-          limiteCalculosSalvos: profile.limite_calculos_salvos || 6, // Alterado de 3 para 6
-          limitePeticoesSalvas: profile.limite_peticoes_salvas || 1
-        }));
->>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
         setAllUsers(mappedUsers); 
       }
     } catch (error) {
