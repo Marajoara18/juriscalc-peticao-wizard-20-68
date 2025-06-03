@@ -49,11 +49,29 @@ const UploadLogoForm = () => {
     setUploading(true);
     try {
       const fileExt = selectedFile.name.split('.').pop() || 'jpg';
+      // Usar o ID do usuário como pasta para organizar os arquivos
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       console.log('Iniciando upload para:', fileName);
+      console.log('Usuário ID:', user.id);
 
-      const { error: uploadError } = await supabase.storage
+      // Primeiro, verificar se já existe um arquivo e removê-lo
+      const { data: existingFiles } = await supabase.storage
+        .from(BUCKET_NAME)
+        .list(user.id);
+
+      if (existingFiles && existingFiles.length > 0) {
+        for (const file of existingFiles) {
+          if (file.name.startsWith('avatar.')) {
+            await supabase.storage
+              .from(BUCKET_NAME)
+              .remove([`${user.id}/${file.name}`]);
+          }
+        }
+      }
+
+      // Upload do novo arquivo
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(fileName, selectedFile, { 
           cacheControl: '3600', 
@@ -65,6 +83,9 @@ const UploadLogoForm = () => {
         throw new Error(`Falha no upload: ${uploadError.message}`);
       }
 
+      console.log('Upload realizado com sucesso:', uploadData);
+
+      // Obter URL pública
       const { data: urlData } = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(fileName);
@@ -76,6 +97,7 @@ const UploadLogoForm = () => {
       const publicUrl = urlData.publicUrl;
       console.log('URL pública obtida:', publicUrl);
 
+      // Atualizar perfil na tabela
       const { error: updateError } = await supabase
         .from('perfis')
         .update({ 
@@ -89,10 +111,12 @@ const UploadLogoForm = () => {
         throw new Error(`Falha ao atualizar perfil: ${updateError.message}`);
       }
 
+      // Atualizar estado local
       if (setProfile) {
         setProfile({ ...profile, logo_url: publicUrl });
       }
       
+      // Limpar estado
       setSelectedFile(null);
       setPreviewUrl(null);
       if (fileInputRef.current) {
