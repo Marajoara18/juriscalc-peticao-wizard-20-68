@@ -22,11 +22,14 @@ const UploadLogoForm = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Por favor, selecione um arquivo de imagem (PNG, JPG, GIF, etc.).');
+      // Validação mais rigorosa do tipo de arquivo
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Por favor, selecione um arquivo de imagem válido (JPG, PNG, GIF, WebP).');
         return;
       }
       
+      // Verificação do tamanho (2MB limite)
       if (file.size > 2 * 1024 * 1024) {
         toast.error('O arquivo deve ter no máximo 2MB.');
         return;
@@ -49,33 +52,43 @@ const UploadLogoForm = () => {
     setUploading(true);
     try {
       const fileExt = selectedFile.name.split('.').pop() || 'jpg';
-      // Usar o ID do usuário como pasta para organizar os arquivos
+      // Usar o ID do usuário como pasta para organizar os arquivos conforme esperado pelas políticas RLS
       const fileName = `${user.id}/avatar.${fileExt}`;
 
       console.log('Iniciando upload para:', fileName);
       console.log('Usuário ID:', user.id);
+      console.log('Bucket:', BUCKET_NAME);
 
-      // Primeiro, verificar se já existe um arquivo e removê-lo
-      const { data: existingFiles } = await supabase.storage
-        .from(BUCKET_NAME)
-        .list(user.id);
+      // Primeiro, tentar remover arquivos antigos (se existirem)
+      try {
+        const { data: existingFiles } = await supabase.storage
+          .from(BUCKET_NAME)
+          .list(user.id);
 
-      if (existingFiles && existingFiles.length > 0) {
-        for (const file of existingFiles) {
-          if (file.name.startsWith('avatar.')) {
+        if (existingFiles && existingFiles.length > 0) {
+          const filesToRemove = existingFiles
+            .filter(file => file.name.startsWith('avatar.'))
+            .map(file => `${user.id}/${file.name}`);
+          
+          if (filesToRemove.length > 0) {
+            console.log('Removendo arquivos antigos:', filesToRemove);
             await supabase.storage
               .from(BUCKET_NAME)
-              .remove([`${user.id}/${file.name}`]);
+              .remove(filesToRemove);
           }
         }
+      } catch (listError) {
+        console.log('Erro ao listar/remover arquivos antigos (não crítico):', listError);
+        // Não bloquear o upload se não conseguir remover arquivos antigos
       }
 
       // Upload do novo arquivo
+      console.log('Fazendo upload do arquivo...');
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(fileName, selectedFile, { 
           cacheControl: '3600', 
-          upsert: true
+          upsert: true // Sobrescrever se existir
         });
 
       if (uploadError) {
@@ -158,7 +171,7 @@ const UploadLogoForm = () => {
             <Input
               id="logo-upload"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
               onChange={handleFileChange}
               ref={fileInputRef}
               disabled={uploading}
