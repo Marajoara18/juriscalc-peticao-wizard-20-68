@@ -7,33 +7,38 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+// Import the custom RegisterForm and its data type
+import RegisterForm from '@/components/auth/RegisterForm';
+import { RegisterFormData } from '@/types/auth'; // Make sure this type includes 'telefone'
 
 const SupabaseAuthPage = () => {
+  // Keep signIn, signUp, loading from the hook
   const { signIn, signUp, loading } = useSupabaseAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  // Keep formData for Login, but registration fields (nome, confirmPassword) are now handled by RegisterForm
+  const [loginFormData, setLoginFormData] = useState({
     email: '',
-    password: '',
-    confirmPassword: '',
-    nome: ''
+    password: ''
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
+  // Keep handleInputChange for Login form
+  const handleLoginInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLoginFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
   };
 
+  // Keep handleLogin as is, using loginFormData
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password) {
+    if (!loginFormData.email || !loginFormData.password) {
       toast.error('Por favor, preencha todos os campos');
       return;
     }
 
-    const { error } = await signIn(formData.email, formData.password);
+    const { error } = await signIn(loginFormData.email, loginFormData.password);
     
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
@@ -48,25 +53,27 @@ const SupabaseAuthPage = () => {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.nome || !formData.email || !formData.password || !formData.confirmPassword) {
+  // Modify handleRegister to accept RegisterFormData and pass telefone to signUp
+  const handleRegister = async (data: RegisterFormData) => {
+    // Validation can be simplified if RegisterForm handles it, but basic checks here are fine
+    if (!data.nome || !data.email || !data.telefone || !data.senha || !data.confirmSenha) {
       toast.error('Por favor, preencha todos os campos');
       return;
     }
     
-    if (formData.password !== formData.confirmPassword) {
+    if (data.senha !== data.confirmSenha) {
       toast.error('As senhas não conferem');
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (data.senha.length < 6) {
       toast.error('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
-    const { error } = await signUp(formData.email, formData.password, formData.nome);
+    // Call signUp with all data including telefone
+    // NOTE: Assuming signUp in useSupabaseAuth accepts telefone based on previous refactoring.
+    const { error } = await signUp(data.email, data.senha, data.nome, data.telefone);
     
     if (error) {
       if (error.message.includes('User already registered')) {
@@ -93,7 +100,7 @@ const SupabaseAuthPage = () => {
         <div className="text-center mb-6">
           <div className="bg-white p-2 rounded-lg inline-block mb-4">
             <img 
-              src="/lovable-uploads/2dd8ec7a-6e0c-401d-9584-46801524c4cb.png"
+              src="/lovable-uploads/caf683c7-0cb3-4ef4-8e5f-5de22f996b8a.png"
               alt="IusCalc Logo"
               className="h-16 w-auto"
             />
@@ -117,16 +124,17 @@ const SupabaseAuthPage = () => {
               </TabsList>
               
               <TabsContent value="login">
+                {/* Login form using loginFormData and handleLoginInputChange */}
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input
                       id="login-email"
-                      name="email"
+                      name="email" // Ensure name matches state key
                       type="email"
                       placeholder="seu@email.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
+                      value={loginFormData.email}
+                      onChange={handleLoginInputChange}
                       required
                     />
                   </div>
@@ -135,11 +143,11 @@ const SupabaseAuthPage = () => {
                     <div className="relative">
                       <Input
                         id="login-password"
-                        name="password"
+                        name="password" // Ensure name matches state key
                         type={showPassword ? "text" : "password"}
                         placeholder="Sua senha"
-                        value={formData.password}
-                        onChange={handleInputChange}
+                        value={loginFormData.password}
+                        onChange={handleLoginInputChange}
                         required
                       />
                       <Button
@@ -175,85 +183,8 @@ const SupabaseAuthPage = () => {
               </TabsContent>
               
               <TabsContent value="register">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-nome">Nome Completo</Label>
-                    <Input
-                      id="register-nome"
-                      name="nome"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      value={formData.nome}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email">Email</Label>
-                    <Input
-                      id="register-email"
-                      name="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 6 caracteres"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-confirm">Confirmar Senha</Label>
-                    <Input
-                      id="register-confirm"
-                      name="confirmPassword"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Confirme sua senha"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-juriscalc-navy hover:bg-juriscalc-blue"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Cadastrando...
-                      </>
-                    ) : (
-                      'Criar Conta'
-                    )}
-                  </Button>
-                </form>
+                {/* Use the custom RegisterForm component */}
+                <RegisterForm onSubmit={handleRegister} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -264,3 +195,4 @@ const SupabaseAuthPage = () => {
 };
 
 export default SupabaseAuthPage;
+

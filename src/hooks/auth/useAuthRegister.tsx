@@ -1,111 +1,98 @@
-
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useProfileManager } from './useProfileManager';
-
-interface RegisterData {
-  nome: string;
-  email: string;
-  telefone: string;
-  senha: string;
-  confirmSenha: string;
-}
+import { RegisterFormData } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client'; // Importar supabase client
+import { useProfileManager } from './useProfileManager'; // Importar hook para criar perfil
 
 export const useAuthRegister = () => {
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { createProfile } = useProfileManager();
+  const { createProfile } = useProfileManager(); // Obter função createProfile
 
-  const register = async (data: RegisterData) => {
-    const { nome, email, telefone, senha, confirmSenha } = data;
-
-    if (senha !== confirmSenha) {
-      toast.error('As senhas não coincidem');
-      return { error: 'Senhas não coincidem' };
+  const handleRegister = async (data: RegisterFormData) => {
+    if (!data.nome || !data.email || !data.telefone || !data.senha || !data.confirmSenha) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
     }
 
-    if (senha.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return { error: 'Senha muito curta' };
+    if (data.senha !== data.confirmSenha) {
+      toast.error('As senhas não conferem');
+      return;
     }
-
-    setLoading(true);
-    console.log('[AUTH_REGISTER] Iniciando registro para:', email);
 
     try {
-      // 1. Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password: senha,
+      // 1. Tentar registrar o usuário no Supabase Auth
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.senha,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            nome_completo: nome,
-            telefone: telefone // Incluindo telefone nos metadados
-          }
+          // Opcional: enviar dados adicionais que podem ser usados em triggers ou funções
+          // data: {
+          //   nome_completo: data.nome,
+          //   telefone: data.telefone
+          // }
         }
       });
 
-      if (authError) {
-        console.error('[AUTH_REGISTER] Erro no Auth:', authError);
-        
-        if (authError.message.includes('already registered')) {
-          toast.error('Este e-mail já está cadastrado. Tente fazer login.');
-        } else if (authError.message.includes('email')) {
-          toast.error('E-mail inválido. Verifique e tente novamente.');
+      if (signUpError) {
+        console.error('Erro no Supabase SignUp:', signUpError.message);
+        // Verificar erros comuns
+        if (signUpError.message.includes('User already registered')) {
+          toast.error('Este e-mail já está cadastrado.');
+        } else if (signUpError.message.includes('Password should be at least 6 characters')) {
+          toast.error('A senha deve ter pelo menos 6 caracteres.');
         } else {
-          toast.error(`Erro no cadastro: ${authError.message}`);
+          toast.error(`Erro ao cadastrar: ${signUpError.message}`);
         }
-        
-        return { error: authError.message };
+        return;
       }
 
-      if (!authData.user) {
-        toast.error('Erro inesperado ao criar usuário');
-        return { error: 'Erro inesperado' };
+      // Verificar se o usuário foi criado e tem ID
+      if (!signUpData.user || !signUpData.user.id) {
+        console.error('Supabase SignUp não retornou usuário ou ID.');
+        toast.error('Erro inesperado ao cadastrar. Tente novamente.');
+        return;
       }
 
-      console.log('[AUTH_REGISTER] Usuário criado no Auth:', authData.user.id);
+      const userId = signUpData.user.id;
+      console.log('Usuário registrado no Supabase Auth com ID:', userId);
 
-      // 2. Criar perfil se o usuário foi criado
-      if (authData.user) {
-        const profileResult = await createProfile({
-          userId: authData.user.id,
-          nomeCompleto: nome,
-          email,
-          telefone
-        });
+      // 2. Criar o perfil na tabela 'perfis' usando a função do useProfileManager
+      const profileData = {
+        userId: userId,
+        nomeCompleto: data.nome,
+        email: data.email,
+        telefone: data.telefone,
+      };
 
-        if (!profileResult) {
-          console.warn('[AUTH_REGISTER] Falha ao criar perfil, mas usuário foi criado no Auth');
-        } else {
-          console.log('[AUTH_REGISTER] Perfil criado com sucesso');
-        }
+      const createdProfile = await createProfile(profileData);
+
+      if (!createdProfile) {
+        // Idealmente, deveríamos tentar reverter o signUp ou lidar com o erro
+        // Por agora, informamos o usuário, mas a conta Auth existe sem perfil
+        console.error('Falha ao criar o perfil no Supabase após o registro.');
+        toast.error('Cadastro realizado, mas houve um problema ao criar seu perfil. Contacte o suporte.');
+        // Poderia redirecionar para o login ou uma página de erro
+        navigate('/login');
+        return;
       }
 
-      // 3. Sucesso
-      if (authData.user && !authData.session) {
-        toast.success('Cadastro realizado! Verifique seu e-mail para confirmar a conta.');
-      } else {
-        toast.success('Cadastro realizado com sucesso!');
-        navigate('/');
-      }
+      console.log('Perfil criado no Supabase:', createdProfile);
 
-      return { error: null };
+      // 3. Sucesso - Informar o usuário e redirecionar
+      // O Supabase Auth geralmente lida com o login automático após signUp se a confirmação de email estiver desativada
+      // Se a confirmação estiver ativa, o usuário precisará confirmar o email antes de logar.
+      toast.success('Cadastro realizado com sucesso! Verifique seu e-mail para confirmação, se necessário.');
+      // Redirecionar para a página de login ou para uma página que informa sobre a confirmação de email
+      navigate('/login'); // Ou para '/calculadora' se o login for automático
 
     } catch (error: any) {
-      console.error('[AUTH_REGISTER] Erro inesperado:', error);
-      toast.error('Erro inesperado durante o cadastro');
-      return { error: error.message };
-    } finally {
-      setLoading(false);
+      console.error('Erro inesperado durante o registro:', error);
+      toast.error(`Ocorreu um erro inesperado: ${error.message || 'Tente novamente.'}`);
     }
   };
 
   return {
-    register,
-    loading
+    handleRegister
   };
 };
+
