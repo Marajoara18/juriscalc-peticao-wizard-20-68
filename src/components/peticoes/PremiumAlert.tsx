@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import SubscriptionManager from './SubscriptionManager';
@@ -5,11 +6,7 @@ import { AlertCircle } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
-<<<<<<< HEAD
 const LIMITE_CALCULOS_GRATUITOS = 6;
-=======
-const LIMITE_CALCULOS_GRATUITOS = 6; // Corrigido para 6 cálculos
->>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
 const KEY_CONTADOR_CALCULOS = 'calculosRealizados';
 
 const PremiumAlert = () => {
