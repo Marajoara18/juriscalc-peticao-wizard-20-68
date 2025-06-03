@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from './types';
@@ -8,13 +9,8 @@ let createAttempted = false;
 // Define os limites aqui também para consistência na criação
 const PLANO_LIMITES = {
   gratuito: {
-<<<<<<< HEAD
     calculos: 6, // Limite de cálculos salvos
-    peticoes: 6
-=======
-    calculos: 6, // Corrigido para 6 cálculos salvos
     peticoes: 1
->>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
   },
   premium: {
     calculos: 999999,
