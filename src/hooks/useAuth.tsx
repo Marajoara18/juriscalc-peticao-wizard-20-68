@@ -8,7 +8,7 @@ import { usePasswordReset } from './auth/usePasswordReset';
 export const useAuth = () => {
   const navigate = useNavigate();
   const { handleLogin, initializeAdminUser } = useAuthLogin();
-  const { register } = useAuthRegister();
+  const { handleRegister } = useAuthRegister();
   const { 
     resetMasterPassword, 
     requestPasswordReset, 
@@ -28,7 +28,7 @@ export const useAuth = () => {
   
   return {
     handleLogin,
-    handleRegister: register, // Mapear corretamente para a função register
+    handleRegister,
     resetMasterPassword,
     requestPasswordReset,
     resetUserPassword

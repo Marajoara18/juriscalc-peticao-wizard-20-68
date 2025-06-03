@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
@@ -9,7 +10,7 @@ import { toast } from 'sonner';
 import { Loader2, Upload } from 'lucide-react';
 import { getInitials } from '@/utils/getInitials';
 
-const BUCKET_NAME = 'logos'; // Assume the bucket is named 'logos'
+const BUCKET_NAME = 'logos';
 
 const UploadLogoForm = () => {
   const { user, profile, setProfile } = useSupabaseAuth();
@@ -21,11 +22,18 @@ const UploadLogoForm = () => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Basic validation (optional: add size limit, more types)
+      // Validação básica
       if (!file.type.startsWith('image/')) {
-        toast.error('Por favor, selecione um ficheiro de imagem (PNG, JPG, GIF, etc.).');
+        toast.error('Por favor, selecione um arquivo de imagem (PNG, JPG, GIF, etc.).');
         return;
       }
+      
+      // Verificar tamanho do arquivo (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('O arquivo deve ter no máximo 2MB.');
+        return;
+      }
+      
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
     } else {
@@ -36,67 +44,72 @@ const UploadLogoForm = () => {
 
   const handleUpload = async () => {
     if (!selectedFile || !user || !profile) {
-      toast.warning('Selecione um ficheiro para fazer upload.');
+      toast.warning('Selecione um arquivo para fazer upload.');
       return;
     }
 
     setUploading(true);
     try {
-      const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${user.id}/avatar.${fileExt}`; // Path within the bucket
+      const fileExt = selectedFile.name.split('.').pop() || 'jpg';
+      const fileName = `${user.id}/avatar.${fileExt}`;
 
-      // 1. Upload to Supabase Storage
+      console.log('Iniciando upload para:', fileName);
+
+      // 1. Upload para Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
-        .upload(filePath, selectedFile, { 
-            cacheControl: '3600', 
-            upsert: true // Overwrite if file exists
+        .upload(fileName, selectedFile, { 
+          cacheControl: '3600', 
+          upsert: true
         });
 
       if (uploadError) {
-        console.error('Erro no upload para Supabase Storage:', uploadError);
+        console.error('Erro no upload:', uploadError);
         throw new Error(`Falha no upload: ${uploadError.message}`);
       }
 
-      // 2. Get Public URL
+      // 2. Obter URL pública
       const { data: urlData } = supabase.storage
         .from(BUCKET_NAME)
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
-      if (!urlData || !urlData.publicUrl) {
-          console.error('Não foi possível obter a URL pública após o upload.');
-          // Tentar construir a URL manualmente como fallback (menos ideal)
-          // const manualUrl = `${supabase.storage.url}/object/public/${BUCKET_NAME}/${filePath}`;
-          // Se nem isso funcionar, lançar erro.
-          throw new Error('Falha ao obter URL pública da imagem.');
+      if (!urlData?.publicUrl) {
+        throw new Error('Falha ao obter URL pública da imagem.');
       }
       
       const publicUrl = urlData.publicUrl;
-      console.log('URL Pública obtida:', publicUrl);
+      console.log('URL pública obtida:', publicUrl);
 
-      // 3. Update profile table
+      // 3. Atualizar perfil na tabela
       const { error: updateError } = await supabase
         .from('perfis')
-        .update({ logo_url: publicUrl, updated_at: new Date().toISOString() })
+        .update({ 
+          logo_url: publicUrl, 
+          data_atualizacao: new Date().toISOString() 
+        })
         .eq('id', user.id);
 
       if (updateError) {
-        console.error('Erro ao atualizar perfil no Supabase:', updateError);
+        console.error('Erro ao atualizar perfil:', updateError);
         throw new Error(`Falha ao atualizar perfil: ${updateError.message}`);
       }
 
-      // 4. Update local state
-      setProfile({ ...profile, logo_url: publicUrl });
+      // 4. Atualizar estado local
+      if (setProfile) {
+        setProfile({ ...profile, logo_url: publicUrl });
+      }
+      
+      // Limpar estado
       setSelectedFile(null);
       setPreviewUrl(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = ''; // Clear file input
+        fileInputRef.current.value = '';
       }
 
       toast.success('Logo/Foto atualizada com sucesso!');
 
     } catch (error: any) {
-      console.error('Erro durante o processo de upload:', error);
+      console.error('Erro durante upload:', error);
       toast.error(`Erro ao fazer upload: ${error.message || 'Tente novamente.'}`);
     } finally {
       setUploading(false);
@@ -134,7 +147,7 @@ const UploadLogoForm = () => {
               disabled={uploading}
               className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-juriscalc-gold file:text-juriscalc-navy hover:file:bg-opacity-90"
             />
-            <p className="text-xs text-muted-foreground">Tamanho máximo recomendado: 2MB. Formatos: JPG, PNG, GIF, WebP.</p>
+            <p className="text-xs text-muted-foreground">Tamanho máximo: 2MB. Formatos: JPG, PNG, GIF, WebP.</p>
           </div>
           {selectedFile && (
             <Button 
@@ -153,4 +166,3 @@ const UploadLogoForm = () => {
 };
 
 export default UploadLogoForm;
-
