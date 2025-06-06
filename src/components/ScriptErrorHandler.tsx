@@ -4,37 +4,66 @@ import { toast } from 'sonner';
 
 const ScriptErrorHandler = () => {
   useEffect(() => {
-    console.log('[SCRIPT_ERROR_HANDLER] Iniciando limpeza de scripts...');
+    console.log('[SCRIPT_ERROR_HANDLER] Iniciando proteção contra scripts problemáticos...');
 
-    // Função para remover TODOS os scripts do CloudFlare
-    const removeCloudFlareScripts = () => {
-      // Scripts conhecidos do CloudFlare
-      const cloudflareSelectors = [
-        'script[src*="cloudflareinsights.com"]',
-        'script[src*="cf-beacon"]',
-        'script[src*="cloudflare-insights"]',
-        'script[src*="cf-insights"]',
-        'script[data-cf-beacon]',
-        'script[data-cf-settings]'
+    // Função para remover TODOS os scripts e iframes problemáticos
+    const removeProblematicElements = () => {
+      // Scripts conhecidos problemáticos
+      const problematicSelectors = [
+        'script[src*="googletagmanager.com"]',
+        'script[src*="doubleclick.net"]',
+        'script[src*="google-analytics.com"]',
+        'script[src*="netlify"]',
+        'iframe[src*="doubleclick.net"]',
+        'iframe[src*="googletagmanager"]',
+        'iframe[allow*="join-ad-interest-group"]'
       ];
 
-      cloudflareSelectors.forEach(selector => {
-        const scripts = document.querySelectorAll(selector);
-        scripts.forEach(script => {
-          console.log('[SCRIPT_ERROR_HANDLER] Removendo script CloudFlare:', script.getAttribute('src') || script.outerHTML);
-          script.remove();
+      problematicSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          console.log('[SCRIPT_ERROR_HANDLER] Removendo elemento problemático:', element.getAttribute('src') || element.outerHTML.substring(0, 100));
+          element.remove();
         });
       });
 
-      // Remover qualquer script que contenha 'cloudflare' no src
-      const allScripts = document.querySelectorAll('script[src]');
+      // Remover qualquer script que contenha palavras-chave problemáticas
+      const allScripts = document.querySelectorAll('script');
       allScripts.forEach(script => {
         const src = script.getAttribute('src') || '';
-        if (src.toLowerCase().includes('cloudflare') || 
-            src.toLowerCase().includes('cf-') ||
-            src.toLowerCase().includes('beacon')) {
-          console.log('[SCRIPT_ERROR_HANDLER] Removendo script suspeito:', src);
+        const content = script.innerHTML || '';
+        
+        const problematicKeywords = [
+          'googletagmanager',
+          'doubleclick',
+          'google-analytics',
+          'gtag',
+          'fbevents',
+          'netlify'
+        ];
+        
+        const isProblematic = problematicKeywords.some(keyword => 
+          src.toLowerCase().includes(keyword) || 
+          content.toLowerCase().includes(keyword)
+        );
+        
+        if (isProblematic) {
+          console.log('[SCRIPT_ERROR_HANDLER] Removendo script suspeito:', src || 'inline script');
           script.remove();
+        }
+      });
+
+      // Remover iframes problemáticos
+      const allIframes = document.querySelectorAll('iframe');
+      allIframes.forEach(iframe => {
+        const src = iframe.getAttribute('src') || '';
+        const allow = iframe.getAttribute('allow') || '';
+        
+        if (src.includes('doubleclick') || 
+            src.includes('googletagmanager') ||
+            allow.includes('join-ad-interest-group')) {
+          console.log('[SCRIPT_ERROR_HANDLER] Removendo iframe problemático:', src);
+          iframe.remove();
         }
       });
     };
@@ -45,20 +74,19 @@ const ScriptErrorHandler = () => {
       
       console.log('[SCRIPT_ERROR_HANDLER] Erro detectado:', { message, filename });
 
-      // Lista expandida de erros ignorados
+      // Lista de erros sempre ignorados
       const ignoredErrors = [
-        'cloudflare',
-        'cf-insights',
-        'cf-beacon',
-        'cloudflareinsights',
-        'gtag',
+        'googletagmanager',
+        'doubleclick',
         'google-analytics',
-        'facebook.net',
-        'Non-Error promise rejection captured',
+        'gtag',
+        'fbevents',
+        'netlify',
         'Script error',
         'ResizeObserver loop limit exceeded',
         'Network request failed',
-        'Loading chunk'
+        'Loading chunk',
+        'Non-Error promise rejection'
       ];
 
       const shouldIgnore = ignoredErrors.some(ignored => 
@@ -72,11 +100,10 @@ const ScriptErrorHandler = () => {
         return true;
       }
 
-      // Log de erros não ignorados
-      console.error('[SCRIPT_ERROR_HANDLER] Erro de script crítico:', {
+      // Para erros não ignorados, apenas log (não quebrar a aplicação)
+      console.warn('[SCRIPT_ERROR_HANDLER] Erro de script não crítico:', {
         message,
         filename,
-        error: error?.stack,
         timestamp: new Date().toISOString()
       });
 
@@ -87,13 +114,12 @@ const ScriptErrorHandler = () => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
       
-      console.log('[SCRIPT_ERROR_HANDLER] Promise rejection:', reason);
-
       if (typeof reason === 'string') {
         const ignoredReasons = [
-          'cloudflare',
-          'cf-insights',
-          'cf-beacon',
+          'googletagmanager',
+          'doubleclick',
+          'google-analytics',
+          'netlify',
           'non-error promise rejection',
           'network error',
           'loading chunk'
@@ -110,35 +136,41 @@ const ScriptErrorHandler = () => {
         }
       }
 
-      console.error('[SCRIPT_ERROR_HANDLER] Promise rejection crítica:', reason);
+      console.warn('[SCRIPT_ERROR_HANDLER] Promise rejection não crítica:', reason);
     };
 
     // Registrar handlers
     window.addEventListener('error', handleScriptError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
-    // Remover scripts imediatamente
-    removeCloudFlareScripts();
+    // Remover elementos problemáticos imediatamente
+    removeProblematicElements();
 
-    // Remover scripts periodicamente (a cada 5 segundos)
-    const cleanupInterval = setInterval(removeCloudFlareScripts, 5000);
+    // Remover elementos problemáticos a cada 3 segundos
+    const cleanupInterval = setInterval(removeProblematicElements, 3000);
 
-    // Observer para novos scripts adicionados
+    // Observer para novos elementos adicionados
     const observer = new MutationObserver((mutations) => {
+      let needsCleanup = false;
+      
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeName === 'SCRIPT') {
-            const script = node as HTMLScriptElement;
-            const src = script.src || '';
-            if (src.toLowerCase().includes('cloudflare') || 
-                src.toLowerCase().includes('cf-') ||
-                src.toLowerCase().includes('beacon')) {
-              console.log('[SCRIPT_ERROR_HANDLER] Bloqueando novo script CloudFlare:', src);
-              script.remove();
+          if (node.nodeName === 'SCRIPT' || node.nodeName === 'IFRAME') {
+            const element = node as HTMLElement;
+            const src = element.getAttribute('src') || '';
+            
+            if (src.includes('googletagmanager') || 
+                src.includes('doubleclick') ||
+                src.includes('netlify')) {
+              needsCleanup = true;
             }
           }
         });
       });
+      
+      if (needsCleanup) {
+        setTimeout(removeProblematicElements, 100);
+      }
     });
 
     observer.observe(document.head, { childList: true, subtree: true });
