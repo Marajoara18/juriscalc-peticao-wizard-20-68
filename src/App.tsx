@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { StrictMode, useEffect, useRef } from "react";
+import { StrictMode, useEffect, useRef, useState } from "react";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import AdminPanel from "./pages/AdminPanel";
@@ -18,13 +18,33 @@ import PasswordResetRequest from "./components/auth/PasswordResetRequest";
 import PasswordReset from "./components/auth/PasswordReset";
 import ErrorBoundary from "./components/ErrorBoundary";
 import VisibilityErrorBoundary from "./components/VisibilityErrorBoundary";
+import SimpleErrorBoundary from "./components/SimpleErrorBoundary";
 import SessionManager from "./components/auth/SessionManager";
 import ScriptErrorHandler from "./components/ScriptErrorHandler";
 
 const AppContent = () => {
   const isComponentMounted = useRef(true);
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Controle de visibilidade da página
+  // Inicialização segura
+  useEffect(() => {
+    try {
+      console.log('[APP] Inicializando componente...');
+      // Simular inicialização
+      setTimeout(() => {
+        if (isComponentMounted.current) {
+          setIsReady(true);
+          console.log('[APP] Aplicação pronta');
+        }
+      }, 100);
+    } catch (err) {
+      console.error('[APP] Erro na inicialização:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+    }
+  }, []);
+
+  // Controle de visibilidade da página - versão simplificada
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -50,6 +70,50 @@ const AppContent = () => {
       isComponentMounted.current = false;
     };
   }, []);
+
+  // Error fallback
+  if (error) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center', minHeight: '100vh' }}>
+        <h2>Erro na aplicação</h2>
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{ padding: '10px 20px', fontSize: '16px' }}
+        >
+          Recarregar Sistema
+        </button>
+      </div>
+    );
+  }
+
+  // Loading fallback
+  if (!isReady) {
+    return (
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center', 
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <h2>Carregando IusCalc...</h2>
+        <div style={{ marginTop: '20px' }}>
+          <div style={{ 
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #1e40af',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            animation: 'spin 2s linear infinite',
+            margin: '0 auto'
+          }}></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
@@ -162,18 +226,20 @@ const App = () => {
   
   return (
     <StrictMode>
-      <VisibilityErrorBoundary>
-        <ErrorBoundary>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <ScriptErrorHandler />
-              <AppContent />
-            </TooltipProvider>
-          </QueryClientProvider>
-        </ErrorBoundary>
-      </VisibilityErrorBoundary>
+      <SimpleErrorBoundary>
+        <VisibilityErrorBoundary>
+          <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <ScriptErrorHandler />
+                <AppContent />
+              </TooltipProvider>
+            </QueryClientProvider>
+          </ErrorBoundary>
+        </VisibilityErrorBoundary>
+      </SimpleErrorBoundary>
     </StrictMode>
   );
 };
