@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback, useRef } from 'react';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,7 @@ const SessionManager = () => {
   const pingServer = useCallback(async () => {
     try {
       const { data, error } = await Promise.race([
-        supabase.from('profiles').select('id').limit(1),
+        supabase.from('perfis').select('id').limit(1),
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Ping timeout')), 5000)
         )
