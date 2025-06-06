@@ -16,6 +16,9 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import MasterPasswordReset from "./components/auth/MasterPasswordReset";
 import PasswordResetRequest from "./components/auth/PasswordResetRequest";
 import PasswordReset from "./components/auth/PasswordReset";
+import ErrorBoundary from "./components/ErrorBoundary";
+import SessionManager from "./components/auth/SessionManager";
+import ScriptErrorHandler from "./components/ScriptErrorHandler";
 
 const App = () => {
   // Create a client outside the component to prevent recreation on every render
@@ -30,74 +33,108 @@ const App = () => {
   
   return (
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Navigate to="/auth" replace />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/esqueci-senha" element={<PasswordResetRequest />} />
-              <Route path="/reset-senha" element={<PasswordReset />} />
-              <Route path="/reset-password" element={<MasterPasswordReset />} />
-              
-              {/* Protected routes - require authentication */}
-              <Route 
-                path="/home" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/calculadora" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Calculadora />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/peticoes" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Peticoes />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Rota dedicada para Minha Conta */}
-              <Route 
-                path="/minha-conta" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <MinhaContaPage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Admin routes - require authentication and admin role */}
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                    <AdminPanel />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Redirects for common paths */}
-              <Route path="/index" element={<Navigate to="/home" replace />} />
-              
-              {/* Catch all other routes - must be last */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <ScriptErrorHandler />
+            <BrowserRouter>
+              <SessionManager />
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Navigate to="/auth" replace />} />
+                <Route path="/auth" element={
+                  <ErrorBoundary>
+                    <AuthPage />
+                  </ErrorBoundary>
+                } />
+                <Route path="/esqueci-senha" element={
+                  <ErrorBoundary>
+                    <PasswordResetRequest />
+                  </ErrorBoundary>
+                } />
+                <Route path="/reset-senha" element={
+                  <ErrorBoundary>
+                    <PasswordReset />
+                  </ErrorBoundary>
+                } />
+                <Route path="/reset-password" element={
+                  <ErrorBoundary>
+                    <MasterPasswordReset />
+                  </ErrorBoundary>
+                } />
+                
+                {/* Protected routes - require authentication */}
+                <Route 
+                  path="/home" 
+                  element={
+                    <ProtectedRoute requireAuth={true}>
+                      <ErrorBoundary>
+                        <Index />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/calculadora" 
+                  element={
+                    <ProtectedRoute requireAuth={true}>
+                      <ErrorBoundary>
+                        <Calculadora />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/peticoes" 
+                  element={
+                    <ProtectedRoute requireAuth={true}>
+                      <ErrorBoundary>
+                        <Peticoes />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Rota dedicada para Minha Conta */}
+                <Route 
+                  path="/minha-conta" 
+                  element={
+                    <ProtectedRoute requireAuth={true}>
+                      <ErrorBoundary>
+                        <MinhaContaPage />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Admin routes - require authentication and admin role */}
+                <Route 
+                  path="/admin" 
+                  element={
+                    <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                      <ErrorBoundary>
+                        <AdminPanel />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Redirects for common paths */}
+                <Route path="/index" element={<Navigate to="/home" replace />} />
+                
+                {/* Catch all other routes - must be last */}
+                <Route path="*" element={
+                  <ErrorBoundary>
+                    <NotFound />
+                  </ErrorBoundary>
+                } />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </StrictMode>
   );
 };
