@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,26 +11,63 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { RegisterFormData } from '@/types/auth'; // Make sure this type includes 'telefone'
 
+const DEBOUNCE_DELAY = 300; // ms
+
 const SupabaseAuthPage = () => {
   // Keep signIn, signUp, loading from the hook
-  const { signIn, signUp, loading } = useSupabaseAuth();
+  const { signIn, signUp, loading: authLoading } = useSupabaseAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
+  const loadingTimeout = useRef<NodeJS.Timeout | null>(null);
   // Keep formData for Login, but registration fields (nome, confirmPassword) are now handled by RegisterForm
   const [loginFormData, setLoginFormData] = useState({
     email: '',
     password: ''
   });
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (loadingTimeout.current) {
+        clearTimeout(loadingTimeout.current);
+      }
+    };
+  }, []);
+
+  // Debounced loading state update
+  useEffect(() => {
+    if (loadingTimeout.current) {
+      clearTimeout(loadingTimeout.current);
+    }
+
+    if (authLoading || isSubmitting) {
+      loadingTimeout.current = setTimeout(() => {
+        setLocalLoading(true);
+      }, DEBOUNCE_DELAY);
+    } else {
+      loadingTimeout.current = setTimeout(() => {
+        setLocalLoading(false);
+      }, DEBOUNCE_DELAY);
+    }
+
+    return () => {
+      if (loadingTimeout.current) {
+        clearTimeout(loadingTimeout.current);
+      }
+    };
+  }, [authLoading, isSubmitting]);
+
   // Keep handleInputChange for Login form
-  const handleLoginInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLoginInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
-  };
+  }, []);
 
   // Keep handleLogin as is, using loginFormData
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!loginFormData.email || !loginFormData.password) {
@@ -38,23 +75,31 @@ const SupabaseAuthPage = () => {
       return;
     }
 
-    const { error } = await signIn(loginFormData.email, loginFormData.password);
-    
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Email ou senha incorretos');
-      } else if (error.message.includes('Email not confirmed')) {
-        toast.error('Por favor, confirme seu email antes de fazer login');
+    try {
+      setIsSubmitting(true);
+      const { error } = await signIn(loginFormData.email, loginFormData.password);
+      
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Email ou senha incorretos');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Por favor, confirme seu email antes de fazer login');
+        } else {
+          toast.error(`Erro no login: ${error.message}`);
+        }
       } else {
-        toast.error(`Erro no login: ${error.message}`);
+        toast.success('Login realizado com sucesso!');
       }
-    } else {
-      toast.success('Login realizado com sucesso!');
+    } catch (error: any) {
+      toast.error('Erro inesperado ao fazer login');
+      console.error('Erro no login:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }, [loginFormData, signIn]);
 
   // Modify handleRegister to accept RegisterFormData and pass telefone to signUp
-  const handleRegister = async (data: RegisterFormData) => {
+  const handleRegister = useCallback(async (data: RegisterFormData) => {
     // Validation can be simplified if RegisterForm handles it, but basic checks here are fine
     if (!data.nome || !data.email || !data.telefone || !data.senha || !data.confirmSenha) {
       toast.error('Por favor, preencha todos os campos');
@@ -71,20 +116,26 @@ const SupabaseAuthPage = () => {
       return;
     }
 
-    // Call signUp with all data including telefone
-    // NOTE: Assuming signUp in useSupabaseAuth accepts telefone based on previous refactoring.
-    const { error } = await signUp(data.email, data.senha, data.nome, data.telefone);
-    
-    if (error) {
-      if (error.message.includes('User already registered')) {
-        toast.error('Este email já está cadastrado');
+    try {
+      setIsSubmitting(true);
+      const { error } = await signUp(data.email, data.senha, data.nome, data.telefone);
+      
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          toast.error('Este email já está cadastrado');
+        } else {
+          toast.error(`Erro no cadastro: ${error.message}`);
+        }
       } else {
-        toast.error(`Erro no cadastro: ${error.message}`);
+        toast.success('Cadastro realizado! Verifique seu email para confirmar a conta.');
       }
-    } else {
-      toast.success('Cadastro realizado! Verifique seu email para confirmar a conta.');
+    } catch (error: any) {
+      toast.error('Erro inesperado ao fazer cadastro');
+      console.error('Erro no cadastro:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }, [signUp]);
 
   return (
     <div 
@@ -135,6 +186,7 @@ const SupabaseAuthPage = () => {
                       placeholder="seu@email.com"
                       value={loginFormData.email}
                       onChange={handleLoginInputChange}
+                      disabled={localLoading}
                       required
                     />
                   </div>
@@ -148,6 +200,7 @@ const SupabaseAuthPage = () => {
                         placeholder="Sua senha"
                         value={loginFormData.password}
                         onChange={handleLoginInputChange}
+                        disabled={localLoading}
                         required
                       />
                       <Button
@@ -156,6 +209,7 @@ const SupabaseAuthPage = () => {
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={localLoading}
                       >
                         {showPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -167,14 +221,14 @@ const SupabaseAuthPage = () => {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full bg-juriscalc-navy hover:bg-juriscalc-blue"
-                    disabled={loading}
+                    className="w-full bg-juriscalc-navy hover:bg-juriscalc-blue transition-colors duration-200"
+                    disabled={localLoading}
                   >
-                    {loading ? (
-                      <>
+                    {localLoading ? (
+                      <div className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Entrando...
-                      </>
+                        <span>Entrando...</span>
+                      </div>
                     ) : (
                       'Entrar'
                     )}
@@ -184,7 +238,7 @@ const SupabaseAuthPage = () => {
               
               <TabsContent value="register">
                 {/* Use the custom RegisterForm component */}
-                <RegisterForm onSubmit={handleRegister} />
+                <RegisterForm onSubmit={handleRegister} disabled={localLoading} />
               </TabsContent>
             </Tabs>
           </CardContent>

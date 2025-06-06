@@ -1,7 +1,8 @@
-
-import React from 'react';
-import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,25 +15,48 @@ const ProtectedRoute = ({
   requireAuth = true, 
   requireAdmin = false 
 }: ProtectedRouteProps) => {
-  const { user, profile, loading } = useSupabaseAuth();
+  const { user, profile, loading, error, checkSession, retryCount } = useSupabaseAuth();
   const location = useLocation();
+  const [showRetry, setShowRetry] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  console.log('[PROTECTED_ROUTE] Verificação de acesso:', {
-    path: location.pathname,
-    user: !!user,
-    userId: user?.id,
-    userEmail: user?.email,
-    profile: !!profile,
-    planId: profile?.plano_id,
-    loading,
-    requireAuth,
-    requireAdmin,
-    timestamp: new Date().toISOString()
-  });
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
-  // Show loading spinner while checking authentication
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Se houver erro ou não tiver usuário após o carregamento, mostrar botão de retry após 3 segundos
+    let timeoutId: NodeJS.Timeout;
+    
+    if (!loading && (!user || error) && requireAuth) {
+      timeoutId = setTimeout(() => {
+        setShowRetry(true);
+      }, 3000);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [loading, user, error, requireAuth]);
+
+  const handleRetry = () => {
+    setShowRetry(false);
+    checkSession();
+  };
+
+  // Mostrar loading enquanto verifica autenticação
   if (loading) {
-    console.log('[PROTECTED_ROUTE] Ainda carregando autenticação...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
         <div className="text-center text-white">
@@ -44,55 +68,128 @@ const ProtectedRoute = ({
     );
   }
 
-  // Redirect to login if authentication is required but user is not authenticated
-  if (requireAuth && !user) {
-    console.error('[PROTECTED_ROUTE] REDIRECIONANDO PARA LOGIN! User:', user, 'Loading:', loading, 'Path:', location.pathname);
-    return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
-
-  // Se o usuário está autenticado mas não tem perfil, mostrar mensagem amigável
-  if (requireAuth && user && !profile) {
-    console.log('[PROTECTED_ROUTE] Usuário autenticado mas sem perfil');
+  // Se houver erro de autenticação ou perfil
+  if (requireAuth && (error || (!user && showRetry))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
         <div className="text-center text-white max-w-md mx-auto px-4">
           <div className="mb-4">
-            <svg className="mx-auto h-16 w-16 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+            {error ? (
+              <AlertCircle className="mx-auto h-16 w-16 text-red-400" />
+            ) : !isOnline ? (
+              <WifiOff className="mx-auto h-16 w-16 text-white animate-pulse" />
+            ) : (
+              <RefreshCw className="mx-auto h-16 w-16 text-white animate-pulse" />
+            )}
           </div>
-          <h2 className="text-xl font-medium mb-2">Configurando seu perfil</h2>
-          <p className="text-sm opacity-75">
-            Estamos finalizando a configuração da sua conta. Isso pode levar alguns instantes.
+          <h2 className="text-xl font-medium mb-2">
+            {error ? 'Erro de Autenticação' : !isOnline ? 'Sem Conexão' : 'Problema de Conexão'}
+          </h2>
+          <p className="text-sm opacity-75 mb-4">
+            {error ? error : !isOnline 
+              ? 'Parece que você está sem conexão com a internet. Por favor, verifique sua conexão e tente novamente.' 
+              : 'Parece que houve um problema ao verificar sua autenticação. Isso pode acontecer devido a uma conexão instável.'}
           </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-white text-juriscalc-navy rounded hover:bg-gray-100 transition-colors"
-          >
-            Tentar novamente
-          </button>
+          <div className="space-y-2">
+            {retryCount < 3 && isOnline && (
+              <Button 
+                onClick={handleRetry}
+                className="w-full bg-white text-juriscalc-navy hover:bg-gray-100 transition-colors"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar Novamente
+              </Button>
+            )}
+            {!isOnline && (
+              <Button 
+                onClick={() => window.location.reload()}
+                className="w-full bg-white text-juriscalc-navy hover:bg-gray-100 transition-colors"
+              >
+                <Wifi className="mr-2 h-4 w-4" />
+                Verificar Conexão
+              </Button>
+            )}
+            <Button 
+              onClick={() => window.location.href = '/auth'}
+              variant="outline"
+              className="w-full border-white text-white hover:bg-white/10"
+            >
+              Voltar para Login
+            </Button>
+          </div>
+          {retryCount >= 3 && (
+            <p className="text-sm text-red-300 mt-4">
+              Muitas tentativas sem sucesso. Por favor, tente fazer login novamente.
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
-  // Verificação de admin - agora verifica tanto 'admin' quanto 'premium' para acesso admin
+  // Redirecionar para login se não estiver autenticado
+  if (requireAuth && !user) {
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // Se o usuário está autenticado mas não tem perfil
+  if (requireAuth && user && !profile) {
+    console.log('[PROTECTED_ROUTE] Usuário autenticado mas sem perfil:', { userId: user.id, retryCount });
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
+        <div className="text-center text-white max-w-md mx-auto px-4">
+          <div className="mb-4">
+            <RefreshCw className="mx-auto h-16 w-16 text-white animate-spin" />
+          </div>
+          <h2 className="text-xl font-medium mb-2">Configurando seu perfil</h2>
+          <p className="text-sm opacity-75 mb-4">
+            {retryCount === 0 
+              ? 'Estamos finalizando a configuração da sua conta. Isso pode levar alguns instantes.'
+              : `Tentativa ${retryCount} de 3. Aguarde enquanto tentamos novamente...`}
+          </p>
+          <div className="space-y-2">
+            {retryCount < 3 && (
+              <Button 
+                onClick={() => {
+                  console.log('[PROTECTED_ROUTE] Tentando buscar perfil novamente...');
+                  checkSession();
+                }}
+                className="w-full bg-white text-juriscalc-navy hover:bg-gray-100 transition-colors"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Tentar novamente
+              </Button>
+            )}
+            <Button 
+              onClick={() => {
+                console.log('[PROTECTED_ROUTE] Redirecionando para login...');
+                window.location.href = '/auth';
+              }}
+              variant="outline"
+              className="w-full border-white text-white hover:bg-white/10"
+            >
+              Voltar para Login
+            </Button>
+          </div>
+          {retryCount >= 3 && (
+            <p className="text-sm text-red-300 mt-4">
+              Não foi possível configurar seu perfil após várias tentativas. Por favor, tente fazer login novamente.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Verificação de admin
   if (requireAdmin && profile) {
     const isAdmin = profile.plano_id === 'admin' || profile.plano_id === 'premium';
     
-    console.log('[PROTECTED_ROUTE] Verificação de admin:', {
-      planId: profile.plano_id,
-      isAdmin,
-      requireAdmin
-    });
-    
     if (!isAdmin) {
-      console.log('[PROTECTED_ROUTE] Usuário não é admin, redirecionando para /home. Plano atual:', profile.plano_id);
       return <Navigate to="/home" replace />;
     }
   }
 
-  console.log('[PROTECTED_ROUTE] Acesso permitido, renderizando conteúdo');
   return <>{children}</>;
 };
 

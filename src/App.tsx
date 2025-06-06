@@ -1,10 +1,10 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { StrictMode } from "react";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import AdminPanel from "./pages/AdminPanel";
@@ -17,87 +17,100 @@ import MasterPasswordReset from "./components/auth/MasterPasswordReset";
 import PasswordResetRequest from "./components/auth/PasswordResetRequest";
 import PasswordReset from "./components/auth/PasswordReset";
 
-const App = () => {
-  // Create a client outside the component to prevent recreation on every render
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: 1,
-        refetchOnWindowFocus: false,
-      },
+// Configuração do React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      cacheTime: 10 * 60 * 1000, // 10 minutos
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
     },
-  });
-  
+  },
+});
+
+const App = () => {
   return (
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Navigate to="/auth" replace />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/esqueci-senha" element={<PasswordResetRequest />} />
-              <Route path="/reset-senha" element={<PasswordReset />} />
-              <Route path="/reset-password" element={<MasterPasswordReset />} />
-              
-              {/* Protected routes - require authentication */}
-              <Route 
-                path="/home" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/calculadora" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Calculadora />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/peticoes" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <Peticoes />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Rota dedicada para Minha Conta */}
-              <Route 
-                path="/minha-conta" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <MinhaContaPage />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Admin routes - require authentication and admin role */}
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                    <AdminPanel />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Redirects for common paths */}
-              <Route path="/index" element={<Navigate to="/home" replace />} />
-              
-              {/* Catch all other routes - must be last */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Navigate to="/auth" replace />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/esqueci-senha" element={<PasswordResetRequest />} />
+                <Route path="/reset-senha" element={<PasswordReset />} />
+                <Route path="/reset-password" element={<MasterPasswordReset />} />
+                
+                {/* Protected routes - require authentication */}
+                <Route 
+                  path="/home" 
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute requireAuth={true}>
+                        <Index />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  } 
+                />
+                <Route 
+                  path="/calculadora" 
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute requireAuth={true}>
+                        <Calculadora />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  } 
+                />
+                <Route 
+                  path="/peticoes" 
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute requireAuth={true}>
+                        <Peticoes />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  } 
+                />
+                
+                {/* Admin routes */}
+                <Route 
+                  path="/admin" 
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                        <AdminPanel />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  } 
+                />
+                
+                {/* User account route */}
+                <Route 
+                  path="/minha-conta" 
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute requireAuth={true}>
+                        <MinhaContaPage />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  } 
+                />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </StrictMode>
   );
 };

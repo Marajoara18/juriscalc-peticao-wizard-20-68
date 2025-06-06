@@ -38,19 +38,38 @@ export const useAuthOperations = ({
         console.log('AUTH_OPERATIONS: Login bem-sucedido:', data.user.id);
         const userData: User = {
           id: data.user.id,
-          email: data.user.email || ''
+          email: data.user.email || '',
+          telefone: data.user.user_metadata?.telefone,
+          user_metadata: data.user.user_metadata
         };
         setUser(userData);
 
         // Buscar perfil
-        const profileData = await fetchProfile(data.user.id);
+        let retryCount = 0;
+        let profileData = null;
+        
+        while (retryCount < 3 && !profileData) {
+          console.log(`AUTH_OPERATIONS: Tentativa ${retryCount + 1} de buscar perfil...`);
+          profileData = await fetchProfile(data.user.id);
+          
+          if (!profileData) {
+            retryCount++;
+            if (retryCount < 3) {
+              console.log('AUTH_OPERATIONS: Aguardando antes da próxima tentativa...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
+        }
+
         if (profileData) {
+          console.log('AUTH_OPERATIONS: Perfil encontrado, atualizando estado...');
           setProfile(profileData);
-          console.log('AUTH_OPERATIONS: Perfil definido, redirecionando para /home. Plano:', profileData.plano_id);
-          navigate('/home', { replace: true });
+          setLoading(false);
+          return { data };
         } else {
-          console.log('AUTH_OPERATIONS: Perfil não encontrado, mas login foi bem-sucedido');
-          navigate('/home', { replace: true });
+          console.log('AUTH_OPERATIONS: Perfil não encontrado após todas as tentativas');
+          setLoading(false);
+          return { error: { message: 'Não foi possível carregar seu perfil' } };
         }
       }
 

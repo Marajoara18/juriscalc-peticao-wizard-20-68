@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { hasUnlimitedAccess } from '@/hooks/auth/authUtils';
 
-<<<<<<< HEAD
 const LIMITE_CALCULOS_GRATUITOS = 6;
 const STORAGE_VERSION = 'v2'; // Adicionando versão ao storage
 const KEY_CONTADOR_CALCULOS = `calculosRealizados_${STORAGE_VERSION}`;
@@ -22,10 +21,6 @@ const limparContadoresAntigos = (userId: string) => {
     localStorage.removeItem(key);
   });
 };
-=======
-const LIMITE_CALCULOS_GRATUITOS = 6; // Corrigido para 6 cálculos
-const KEY_CONTADOR_CALCULOS = 'calculosRealizados';
->>>>>>> e00c78adb715a0f761b3a6105e52911bf261efc1
 
 export const useCalculationLimits = () => {
   const { user, profile } = useSupabaseAuth();
