@@ -94,11 +94,30 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Garantir que root e app sejam visíveis */
+  #root {
+    min-height: 100vh;
+    display: block;
+  }
+
+  .app {
+    min-height: 100vh;
+    padding: 20px;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
   }
+}
+
+/* Animação de loading */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @layer components {
