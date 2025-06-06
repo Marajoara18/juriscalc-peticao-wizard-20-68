@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from 'react';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,9 +11,14 @@ const SessionManager = () => {
   const keepAliveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
+  const isComponentMounted = useRef(true);
+  const isPageVisible = useRef(true);
 
   // Função de ping para manter conexão ativa
   const pingServer = useCallback(async () => {
+    // Só faz ping se a página estiver visível e componente montado
+    if (!isPageVisible.current || !isComponentMounted.current) return;
+    
     try {
       const { data, error } = await Promise.race([
         supabase.from('perfis').select('id').limit(1),
@@ -23,18 +27,22 @@ const SessionManager = () => {
         )
       ]) as any;
 
-      if (error) {
+      if (error && isComponentMounted.current) {
         console.log('[SESSION_MANAGER] Ping falhou:', error.message);
-      } else {
+      } else if (isComponentMounted.current) {
         console.log('[SESSION_MANAGER] Ping successful');
       }
     } catch (error) {
-      console.log('[SESSION_MANAGER] Ping timeout ou erro de rede');
+      if (isComponentMounted.current) {
+        console.log('[SESSION_MANAGER] Ping timeout ou erro de rede');
+      }
     }
   }, []);
 
   // Função para verificar se a sessão ainda é válida
   const checkSessionHealth = useCallback(async () => {
+    if (!isComponentMounted.current) return true;
+    
     try {
       console.log('[SESSION_MANAGER] Verificando saúde da sessão...');
       
@@ -44,6 +52,8 @@ const SessionManager = () => {
           setTimeout(() => reject(new Error('Session check timeout')), 10000)
         )
       ]) as any;
+      
+      if (!isComponentMounted.current) return false;
       
       if (error || !session) {
         console.log('[SESSION_MANAGER] Sessão inválida, fazendo logout');
@@ -67,6 +77,8 @@ const SessionManager = () => {
           )
         ]) as any;
         
+        if (!isComponentMounted.current) return false;
+        
         if (refreshError) {
           console.error('[SESSION_MANAGER] Erro ao renovar sessão:', refreshError);
           await signOut();
@@ -79,18 +91,22 @@ const SessionManager = () => {
 
       return true;
     } catch (error) {
+      if (!isComponentMounted.current) return false;
+      
       console.error('[SESSION_MANAGER] Erro ao verificar sessão:', error);
       // Em caso de erro, tentar uma última vez antes de deslogar
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        if (!session && isComponentMounted.current) {
           await signOut();
           return false;
         }
         return true;
       } catch (finalError) {
-        console.error('[SESSION_MANAGER] Erro final, fazendo logout:', finalError);
-        await signOut();
+        if (isComponentMounted.current) {
+          console.error('[SESSION_MANAGER] Erro final, fazendo logout:', finalError);
+          await signOut();
+        }
         return false;
       }
     }
@@ -98,6 +114,8 @@ const SessionManager = () => {
 
   // Função para manter a sessão ativa
   const keepSessionAlive = useCallback(async () => {
+    if (!isComponentMounted.current || !isPageVisible.current) return;
+    
     const timeSinceLastActivity = Date.now() - lastActivityRef.current;
     
     console.log('[SESSION_MANAGER] Keep-alive check, última atividade:', timeSinceLastActivity / 1000 / 60, 'minutos atrás');
@@ -111,9 +129,13 @@ const SessionManager = () => {
             setTimeout(() => reject(new Error('Keep-alive timeout')), 10000)
           )
         ]);
-        console.log('[SESSION_MANAGER] Keep-alive: sessão renovada');
+        if (isComponentMounted.current) {
+          console.log('[SESSION_MANAGER] Keep-alive: sessão renovada');
+        }
       } catch (error) {
-        console.error('[SESSION_MANAGER] Erro no keep-alive:', error);
+        if (isComponentMounted.current) {
+          console.error('[SESSION_MANAGER] Erro no keep-alive:', error);
+        }
       }
     }
   }, []);
@@ -123,43 +145,63 @@ const SessionManager = () => {
     lastActivityRef.current = Date.now();
   }, []);
 
-  // Adicionar logs de debug para window events
+  // Controlar visibilidade da página
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      console.log('[SESSION_MANAGER] Página sendo fechada');
-    };
-
     const handleVisibilityChange = () => {
+      const wasVisible = isPageVisible.current;
+      isPageVisible.current = document.visibilityState === 'visible';
+      
       console.log('[SESSION_MANAGER] Visibilidade da página mudou:', document.visibilityState);
-      if (document.visibilityState === 'visible') {
+      
+      if (isPageVisible.current && !wasVisible) {
+        // Página voltou a ficar visível - apenas atualize atividade, não force verificações
+        console.log('[SESSION_MANAGER] Página voltou a ficar visível - atualizando atividade');
         updateLastActivity();
-        // Verificar sessão quando página volta a ficar visível
-        checkSessionHealth();
+        // NÃO chamar checkSessionHealth() automaticamente aqui
+      } else if (!isPageVisible.current) {
+        console.log('[SESSION_MANAGER] Página ficou oculta');
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    const handleBeforeUnload = () => {
+      console.log('[SESSION_MANAGER] Página sendo fechada');
+      isComponentMounted.current = false;
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [updateLastActivity, checkSessionHealth]);
+  }, [updateLastActivity]);
 
   useEffect(() => {
     if (!user) return;
 
     console.log('[SESSION_MANAGER] Iniciando monitoramento de sessão para usuário:', user.email);
 
-    // Verificar sessão a cada 90 segundos (mais frequente)
-    sessionCheckIntervalRef.current = setInterval(checkSessionHealth, 90 * 1000);
+    // Verificar sessão a cada 2 minutos (menos agressivo)
+    sessionCheckIntervalRef.current = setInterval(() => {
+      if (isPageVisible.current && isComponentMounted.current) {
+        checkSessionHealth();
+      }
+    }, 120 * 1000);
 
-    // Keep-alive a cada 10 minutos
-    keepAliveIntervalRef.current = setInterval(keepSessionAlive, 10 * 60 * 1000);
+    // Keep-alive a cada 15 minutos (menos frequente)
+    keepAliveIntervalRef.current = setInterval(() => {
+      if (isPageVisible.current && isComponentMounted.current) {
+        keepSessionAlive();
+      }
+    }, 15 * 60 * 1000);
 
-    // Ping a cada 60 segundos para manter conexão ativa
-    pingIntervalRef.current = setInterval(pingServer, 60 * 1000);
+    // Ping a cada 2 minutos (menos frequente)
+    pingIntervalRef.current = setInterval(() => {
+      if (isPageVisible.current && isComponentMounted.current) {
+        pingServer();
+      }
+    }, 120 * 1000);
 
     // Rastrear atividade do usuário
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -167,9 +209,11 @@ const SessionManager = () => {
       document.addEventListener(event, updateLastActivity, { passive: true });
     });
 
-    // Verificação inicial
-    checkSessionHealth();
-    pingServer();
+    // Verificação inicial apenas uma vez
+    if (isPageVisible.current) {
+      checkSessionHealth();
+      pingServer();
+    }
 
     return () => {
       if (sessionCheckIntervalRef.current) {
@@ -186,6 +230,13 @@ const SessionManager = () => {
       });
     };
   }, [user, checkSessionHealth, keepSessionAlive, updateLastActivity, pingServer]);
+
+  // Cleanup no unmount
+  useEffect(() => {
+    return () => {
+      isComponentMounted.current = false;
+    };
+  }, []);
 
   return null;
 };
