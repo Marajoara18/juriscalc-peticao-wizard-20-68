@@ -16,12 +16,50 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Desabilitar scripts de cache problemáticos -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <script>
+      // Log de inicialização para debug
+      console.log('[APP] Aplicação iniciada:', new Date().toISOString());
+      
+      // Capturar erros globais
+      window.addEventListener('error', (e) => {
+        console.log('[APP] Erro global capturado:', {
+          message: e.message,
+          filename: e.filename,
+          lineno: e.lineno,
+          colno: e.colno,
+          error: e.error?.stack,
+          timestamp: new Date().toISOString()
+        });
+      });
+      
+      // Capturar promises rejeitadas
+      window.addEventListener('unhandledrejection', (e) => {
+        console.log('[APP] Promise rejection capturada:', {
+          reason: e.reason,
+          timestamp: new Date().toISOString()
+        });
+      });
+      
+      // Desabilitar service workers se existirem
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            console.log('[APP] Removendo service worker:', registration.scope);
+            registration.unregister();
+          }
+        });
+      }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

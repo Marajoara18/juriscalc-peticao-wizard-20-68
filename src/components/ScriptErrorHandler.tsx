@@ -4,20 +4,61 @@ import { toast } from 'sonner';
 
 const ScriptErrorHandler = () => {
   useEffect(() => {
+    console.log('[SCRIPT_ERROR_HANDLER] Iniciando limpeza de scripts...');
+
+    // Função para remover TODOS os scripts do CloudFlare
+    const removeCloudFlareScripts = () => {
+      // Scripts conhecidos do CloudFlare
+      const cloudflareSelectors = [
+        'script[src*="cloudflareinsights.com"]',
+        'script[src*="cf-beacon"]',
+        'script[src*="cloudflare-insights"]',
+        'script[src*="cf-insights"]',
+        'script[data-cf-beacon]',
+        'script[data-cf-settings]'
+      ];
+
+      cloudflareSelectors.forEach(selector => {
+        const scripts = document.querySelectorAll(selector);
+        scripts.forEach(script => {
+          console.log('[SCRIPT_ERROR_HANDLER] Removendo script CloudFlare:', script.getAttribute('src') || script.outerHTML);
+          script.remove();
+        });
+      });
+
+      // Remover qualquer script que contenha 'cloudflare' no src
+      const allScripts = document.querySelectorAll('script[src]');
+      allScripts.forEach(script => {
+        const src = script.getAttribute('src') || '';
+        if (src.toLowerCase().includes('cloudflare') || 
+            src.toLowerCase().includes('cf-') ||
+            src.toLowerCase().includes('beacon')) {
+          console.log('[SCRIPT_ERROR_HANDLER] Removendo script suspeito:', src);
+          script.remove();
+        }
+      });
+    };
+
     // Handler para erros de scripts externos
     const handleScriptError = (event: ErrorEvent) => {
       const { error, filename, message } = event;
       
-      // Filtrar erros conhecidos do CloudFlare Insights e outros scripts externos
+      console.log('[SCRIPT_ERROR_HANDLER] Erro detectado:', { message, filename });
+
+      // Lista expandida de erros ignorados
       const ignoredErrors = [
         'cloudflare',
         'cf-insights',
+        'cf-beacon',
+        'cloudflareinsights',
         'gtag',
         'google-analytics',
         'facebook.net',
         'Non-Error promise rejection captured',
         'Script error',
-        'ResizeObserver loop limit exceeded'
+        'ResizeObserver loop limit exceeded',
+        'Network request failed',
+        'Loading chunk'
       ];
 
       const shouldIgnore = ignoredErrors.some(ignored => 
@@ -32,7 +73,7 @@ const ScriptErrorHandler = () => {
       }
 
       // Log de erros não ignorados
-      console.error('[SCRIPT_ERROR_HANDLER] Erro de script:', {
+      console.error('[SCRIPT_ERROR_HANDLER] Erro de script crítico:', {
         message,
         filename,
         error: error?.stack,
@@ -42,16 +83,20 @@ const ScriptErrorHandler = () => {
       return false;
     };
 
-    // Handler para promises rejeitadas não capturadas
+    // Handler para promises rejeitadas
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
       
-      // Ignorar erros comuns de scripts externos
+      console.log('[SCRIPT_ERROR_HANDLER] Promise rejection:', reason);
+
       if (typeof reason === 'string') {
         const ignoredReasons = [
           'cloudflare',
           'cf-insights',
-          'non-error promise rejection'
+          'cf-beacon',
+          'non-error promise rejection',
+          'network error',
+          'loading chunk'
         ];
 
         const shouldIgnore = ignoredReasons.some(ignored => 
@@ -65,42 +110,46 @@ const ScriptErrorHandler = () => {
         }
       }
 
-      console.error('[SCRIPT_ERROR_HANDLER] Promise rejection não tratada:', reason);
-      
-      // Para erros críticos, mostrar um toast discreto
-      if (reason?.name !== 'ChunkLoadError') {
-        toast.error('Ocorreu um erro inesperado. Se persistir, recarregue a página.');
-      }
+      console.error('[SCRIPT_ERROR_HANDLER] Promise rejection crítica:', reason);
     };
 
-    // Registrar os handlers
+    // Registrar handlers
     window.addEventListener('error', handleScriptError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
-    // Função para remover scripts problemáticos do CloudFlare Insights
-    const removeProblematicScripts = () => {
-      const scripts = document.querySelectorAll('script[src*="cloudflare"], script[src*="cf-insights"]');
-      scripts.forEach(script => {
-        if (script.getAttribute('src')?.includes('beacon') || 
-            script.getAttribute('src')?.includes('insights')) {
-          console.log('[SCRIPT_ERROR_HANDLER] Removendo script problemático:', script.getAttribute('src'));
-          script.remove();
-        }
-      });
-    };
+    // Remover scripts imediatamente
+    removeCloudFlareScripts();
 
-    // Executar limpeza após o carregamento da página
-    if (document.readyState === 'complete') {
-      removeProblematicScripts();
-    } else {
-      window.addEventListener('load', removeProblematicScripts);
-    }
+    // Remover scripts periodicamente (a cada 5 segundos)
+    const cleanupInterval = setInterval(removeCloudFlareScripts, 5000);
+
+    // Observer para novos scripts adicionados
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeName === 'SCRIPT') {
+            const script = node as HTMLScriptElement;
+            const src = script.src || '';
+            if (src.toLowerCase().includes('cloudflare') || 
+                src.toLowerCase().includes('cf-') ||
+                src.toLowerCase().includes('beacon')) {
+              console.log('[SCRIPT_ERROR_HANDLER] Bloqueando novo script CloudFlare:', src);
+              script.remove();
+            }
+          }
+        });
+      });
+    });
+
+    observer.observe(document.head, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
 
     // Cleanup
     return () => {
       window.removeEventListener('error', handleScriptError);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-      window.removeEventListener('load', removeProblematicScripts);
+      clearInterval(cleanupInterval);
+      observer.disconnect();
     };
   }, []);
 
