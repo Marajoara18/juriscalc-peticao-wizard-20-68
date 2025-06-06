@@ -5,25 +5,16 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { toast } from 'sonner';
 
 const dadosIniciais: DadosContrato = {
-  nomeEmpregado: '',
-  nomeEmpregador: '',
   dataAdmissao: '',
   dataDemissao: '',
-  salario: 0,
-  motivoDemissao: 'sem-justa-causa',
-  tempoAvisoPrevio: 30,
-  insalubridade: 0,
-  periculosidade: 0,
-  adicionalNoturno: 0,
-  horasExtras50: 0,
-  horasExtras100: 0,
-  dsrHorasExtras: false,
-  salarioFamilia: 0,
-  auxilioCreche: 0,
-  outrosBeneficios: 0,
-  pensaoAlimenticia: 0,
-  emprestimos: 0,
-  outrosDescontos: 0
+  salarioBase: '',
+  tipoRescisao: 'sem_justa_causa',
+  diasTrabalhados: '',
+  mesesTrabalhados: '',
+  aviso_previo_cumprido: false,
+  fgts_depositado: false,
+  contrato_tempo_determinado: false,
+  meses_restantes_contrato: ''
 };
 
 export const useCalculadoraState = () => {
