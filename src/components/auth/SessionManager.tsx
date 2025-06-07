@@ -13,7 +13,7 @@ const SessionManager = () => {
 
   // Função para verificar se a sessão ainda é válida
   const checkSessionHealth = useCallback(async () => {
-    if (!isComponentMounted.current || !isPageVisible.current) return true;
+    if (!isComponentMounted.current || !isPageVisible.current || !user) return true;
     
     try {
       console.log('[SESSION_MANAGER] Verificando saúde da sessão...');
@@ -21,16 +21,20 @@ const SessionManager = () => {
       const { data: { session }, error } = await Promise.race([
         supabase.auth.getSession(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session check timeout')), 15000)
+          setTimeout(() => reject(new Error('Session check timeout')), 10000)
         )
       ]) as any;
       
       if (!isComponentMounted.current) return false;
       
-      if (error || !session) {
-        console.log('[SESSION_MANAGER] Sessão inválida, fazendo logout');
+      if (error) {
+        console.warn('[SESSION_MANAGER] Erro na verificação da sessão:', error);
+        return true; // Não deslogar por erro de rede
+      }
+      
+      if (!session) {
+        console.log('[SESSION_MANAGER] Sessão inválida, fazendo logout silencioso');
         await signOut();
-        toast.error('Sua sessão expirou. Redirecionando para login...');
         return false;
       }
 
@@ -42,22 +46,26 @@ const SessionManager = () => {
       if (timeUntilExpiry < 600) { // 10 minutos
         console.log('[SESSION_MANAGER] Token próximo do vencimento, renovando...');
         
-        const { error: refreshError } = await Promise.race([
-          supabase.auth.refreshSession(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Refresh timeout')), 15000)
-          )
-        ]) as any;
-        
-        if (!isComponentMounted.current) return false;
-        
-        if (refreshError) {
-          console.error('[SESSION_MANAGER] Erro ao renovar sessão:', refreshError);
-          await signOut();
-          toast.error('Não foi possível renovar sua sessão. Redirecionando...');
-          return false;
-        } else {
-          console.log('[SESSION_MANAGER] Sessão renovada com sucesso');
+        try {
+          const { error: refreshError } = await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Refresh timeout')), 10000)
+            )
+          ]) as any;
+          
+          if (!isComponentMounted.current) return false;
+          
+          if (refreshError) {
+            console.warn('[SESSION_MANAGER] Erro ao renovar sessão:', refreshError);
+            // Não deslogar automaticamente por erro de renovação
+            return true;
+          } else {
+            console.log('[SESSION_MANAGER] Sessão renovada com sucesso');
+          }
+        } catch (refreshError) {
+          console.warn('[SESSION_MANAGER] Falha na renovação da sessão:', refreshError);
+          return true; // Continuar sem deslogar
         }
       }
 
@@ -65,19 +73,18 @@ const SessionManager = () => {
     } catch (error) {
       if (!isComponentMounted.current) return false;
       
-      console.error('[SESSION_MANAGER] Erro ao verificar sessão:', error);
-      // Em caso de erro de timeout, não deslogar automaticamente
-      return true;
+      console.warn('[SESSION_MANAGER] Erro ao verificar sessão (não crítico):', error);
+      return true; // Não deslogar por timeout ou erro de rede
     }
-  }, [signOut]);
+  }, [signOut, user]);
 
   // Função para manter a sessão ativa
   const keepSessionAlive = useCallback(async () => {
-    if (!isComponentMounted.current || !isPageVisible.current) return;
+    if (!isComponentMounted.current || !isPageVisible.current || !user) return;
     
     const timeSinceLastActivity = Date.now() - lastActivityRef.current;
     
-    console.log('[SESSION_MANAGER] Keep-alive check, última atividade:', timeSinceLastActivity / 1000 / 60, 'minutos atrás');
+    console.log('[SESSION_MANAGER] Keep-alive check, última atividade:', Math.round(timeSinceLastActivity / 1000 / 60), 'minutos atrás');
     
     // Se o usuário esteve ativo nos últimos 60 minutos, renovar a sessão
     if (timeSinceLastActivity < 60 * 60 * 1000) {
@@ -85,7 +92,7 @@ const SessionManager = () => {
         await Promise.race([
           supabase.auth.refreshSession(),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Keep-alive timeout')), 10000)
+            setTimeout(() => reject(new Error('Keep-alive timeout')), 8000)
           )
         ]);
         if (isComponentMounted.current) {
@@ -93,11 +100,11 @@ const SessionManager = () => {
         }
       } catch (error) {
         if (isComponentMounted.current) {
-          console.error('[SESSION_MANAGER] Erro no keep-alive:', error);
+          console.warn('[SESSION_MANAGER] Erro no keep-alive (não crítico):', error);
         }
       }
     }
-  }, []);
+  }, [user]);
 
   // Rastrear atividade do usuário
   const updateLastActivity = useCallback(() => {
@@ -111,7 +118,7 @@ const SessionManager = () => {
       
       console.log('[SESSION_MANAGER] Visibilidade da página mudou:', document.visibilityState);
       
-      if (isPageVisible.current) {
+      if (isPageVisible.current && user) {
         console.log('[SESSION_MANAGER] Página voltou a ficar visível - atualizando atividade');
         updateLastActivity();
       }
@@ -129,26 +136,37 @@ const SessionManager = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [updateLastActivity]);
+  }, [updateLastActivity, user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      // Limpar intervalos se não há usuário
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current);
+        sessionCheckIntervalRef.current = null;
+      }
+      if (keepAliveIntervalRef.current) {
+        clearInterval(keepAliveIntervalRef.current);
+        keepAliveIntervalRef.current = null;
+      }
+      return;
+    }
 
     console.log('[SESSION_MANAGER] Iniciando monitoramento de sessão para usuário:', user.email);
 
-    // Verificar sessão a cada 5 minutos (menos agressivo)
+    // Verificar sessão a cada 10 minutos (menos agressivo)
     sessionCheckIntervalRef.current = setInterval(() => {
-      if (isPageVisible.current && isComponentMounted.current) {
+      if (isPageVisible.current && isComponentMounted.current && user) {
         checkSessionHealth();
       }
-    }, 300 * 1000); // 5 minutos
+    }, 600 * 1000); // 10 minutos
 
-    // Keep-alive a cada 30 minutos
+    // Keep-alive a cada 45 minutos
     keepAliveIntervalRef.current = setInterval(() => {
-      if (isPageVisible.current && isComponentMounted.current) {
+      if (isPageVisible.current && isComponentMounted.current && user) {
         keepSessionAlive();
       }
-    }, 30 * 60 * 1000); // 30 minutos
+    }, 45 * 60 * 1000); // 45 minutos
 
     // Rastrear atividade do usuário
     const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
@@ -156,13 +174,13 @@ const SessionManager = () => {
       document.addEventListener(event, updateLastActivity, { passive: true });
     });
 
-    // Verificação inicial apenas se a página estiver visível
+    // Verificação inicial apenas se a página estiver visível (com delay maior)
     if (isPageVisible.current) {
       setTimeout(() => {
-        if (isComponentMounted.current && isPageVisible.current) {
+        if (isComponentMounted.current && isPageVisible.current && user) {
           checkSessionHealth();
         }
-      }, 5000); // Aguardar 5s antes da primeira verificação
+      }, 10000); // Aguardar 10s antes da primeira verificação
     }
 
     return () => {

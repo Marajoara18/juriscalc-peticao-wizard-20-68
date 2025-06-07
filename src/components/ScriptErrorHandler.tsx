@@ -6,6 +6,9 @@ const ScriptErrorHandler = () => {
   useEffect(() => {
     console.log('[SCRIPT_ERROR_HANDLER] Iniciando proteção contra scripts problemáticos...');
 
+    // Variável para rastrear tempo de início
+    let startTime = Date.now();
+
     // Função para remover TODOS os scripts e iframes problemáticos
     const removeProblematicElements = () => {
       // Scripts conhecidos problemáticos
@@ -68,6 +71,23 @@ const ScriptErrorHandler = () => {
       });
     };
 
+    // Função para remover recursos preloaded não utilizados
+    const removeUnusedPreloads = () => {
+      const preloadLinks = document.querySelectorAll('link[rel="preload"]');
+      preloadLinks.forEach(link => {
+        const href = link.getAttribute('href') || '';
+        const as = link.getAttribute('as') || '';
+        
+        // Remover preloads de recursos externos problemáticos
+        if (href.includes('facebook.com') || 
+            href.includes('googletagmanager') ||
+            href.includes('doubleclick')) {
+          console.log('[SCRIPT_ERROR_HANDLER] Removendo preload problemático:', href);
+          link.remove();
+        }
+      });
+    };
+
     // Handler para erros de scripts externos
     const handleScriptError = (event: ErrorEvent) => {
       const { error, filename, message } = event;
@@ -86,7 +106,9 @@ const ScriptErrorHandler = () => {
         'ResizeObserver loop limit exceeded',
         'Network request failed',
         'Loading chunk',
-        'Non-Error promise rejection'
+        'Non-Error promise rejection',
+        'startTime is not defined',
+        'sidePanelUtil'
       ];
 
       const shouldIgnore = ignoredErrors.some(ignored => 
@@ -122,7 +144,9 @@ const ScriptErrorHandler = () => {
           'netlify',
           'non-error promise rejection',
           'network error',
-          'loading chunk'
+          'loading chunk',
+          'starttime',
+          'sidepanelutil'
         ];
 
         const shouldIgnore = ignoredReasons.some(ignored => 
@@ -145,9 +169,13 @@ const ScriptErrorHandler = () => {
 
     // Remover elementos problemáticos imediatamente
     removeProblematicElements();
+    removeUnusedPreloads();
 
-    // Remover elementos problemáticos a cada 3 segundos
-    const cleanupInterval = setInterval(removeProblematicElements, 3000);
+    // Remover elementos problemáticos a cada 5 segundos (menos agressivo)
+    const cleanupInterval = setInterval(() => {
+      removeProblematicElements();
+      removeUnusedPreloads();
+    }, 5000);
 
     // Observer para novos elementos adicionados
     const observer = new MutationObserver((mutations) => {
@@ -155,13 +183,14 @@ const ScriptErrorHandler = () => {
       
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeName === 'SCRIPT' || node.nodeName === 'IFRAME') {
+          if (node.nodeName === 'SCRIPT' || node.nodeName === 'IFRAME' || node.nodeName === 'LINK') {
             const element = node as HTMLElement;
-            const src = element.getAttribute('src') || '';
+            const src = element.getAttribute('src') || element.getAttribute('href') || '';
             
             if (src.includes('googletagmanager') || 
                 src.includes('doubleclick') ||
-                src.includes('netlify')) {
+                src.includes('netlify') ||
+                src.includes('facebook')) {
               needsCleanup = true;
             }
           }
@@ -169,7 +198,10 @@ const ScriptErrorHandler = () => {
       });
       
       if (needsCleanup) {
-        setTimeout(removeProblematicElements, 100);
+        setTimeout(() => {
+          removeProblematicElements();
+          removeUnusedPreloads();
+        }, 100);
       }
     });
 
