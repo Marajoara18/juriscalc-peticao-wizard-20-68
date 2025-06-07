@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 const SessionManager = () => {
   const { user, signOut } = useSupabaseAuth();
@@ -11,24 +10,25 @@ const SessionManager = () => {
   const isComponentMounted = useRef(true);
   const isPageVisible = useRef(true);
 
-  // Função para verificar se a sessão ainda é válida
+  // Função simplificada para verificar se a sessão ainda é válida
   const checkSessionHealth = useCallback(async () => {
     if (!isComponentMounted.current || !isPageVisible.current || !user) return true;
     
     try {
       console.log('[SESSION_MANAGER] Verificando saúde da sessão...');
       
+      // Timeout mais curto (3 segundos)
       const { data: { session }, error } = await Promise.race([
         supabase.auth.getSession(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Session check timeout')), 10000)
+          setTimeout(() => reject(new Error('Session check timeout')), 3000)
         )
       ]) as any;
       
       if (!isComponentMounted.current) return false;
       
       if (error) {
-        console.warn('[SESSION_MANAGER] Erro na verificação da sessão:', error);
+        console.warn('[SESSION_MANAGER] Erro na verificação da sessão (não crítico):', error);
         return true; // Não deslogar por erro de rede
       }
       
@@ -50,21 +50,20 @@ const SessionManager = () => {
           const { error: refreshError } = await Promise.race([
             supabase.auth.refreshSession(),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Refresh timeout')), 10000)
+              setTimeout(() => reject(new Error('Refresh timeout')), 3000)
             )
           ]) as any;
           
           if (!isComponentMounted.current) return false;
           
           if (refreshError) {
-            console.warn('[SESSION_MANAGER] Erro ao renovar sessão:', refreshError);
-            // Não deslogar automaticamente por erro de renovação
+            console.warn('[SESSION_MANAGER] Erro ao renovar sessão (não crítico):', refreshError);
             return true;
           } else {
             console.log('[SESSION_MANAGER] Sessão renovada com sucesso');
           }
         } catch (refreshError) {
-          console.warn('[SESSION_MANAGER] Falha na renovação da sessão:', refreshError);
+          console.warn('[SESSION_MANAGER] Falha na renovação da sessão (não crítico):', refreshError);
           return true; // Continuar sem deslogar
         }
       }
@@ -78,7 +77,7 @@ const SessionManager = () => {
     }
   }, [signOut, user]);
 
-  // Função para manter a sessão ativa
+  // Função para manter a sessão ativa (simplificada)
   const keepSessionAlive = useCallback(async () => {
     if (!isComponentMounted.current || !isPageVisible.current || !user) return;
     
@@ -92,7 +91,7 @@ const SessionManager = () => {
         await Promise.race([
           supabase.auth.refreshSession(),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Keep-alive timeout')), 8000)
+            setTimeout(() => reject(new Error('Keep-alive timeout')), 3000)
           )
         ]);
         if (isComponentMounted.current) {
@@ -154,12 +153,12 @@ const SessionManager = () => {
 
     console.log('[SESSION_MANAGER] Iniciando monitoramento de sessão para usuário:', user.email);
 
-    // Verificar sessão a cada 10 minutos (menos agressivo)
+    // Verificar sessão a cada 15 minutos (menos agressivo)
     sessionCheckIntervalRef.current = setInterval(() => {
       if (isPageVisible.current && isComponentMounted.current && user) {
         checkSessionHealth();
       }
-    }, 600 * 1000); // 10 minutos
+    }, 15 * 60 * 1000); // 15 minutos
 
     // Keep-alive a cada 45 minutos
     keepAliveIntervalRef.current = setInterval(() => {
@@ -180,7 +179,7 @@ const SessionManager = () => {
         if (isComponentMounted.current && isPageVisible.current && user) {
           checkSessionHealth();
         }
-      }, 10000); // Aguardar 10s antes da primeira verificação
+      }, 30000); // Aguardar 30s antes da primeira verificação
     }
 
     return () => {

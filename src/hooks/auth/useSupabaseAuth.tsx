@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
@@ -42,32 +41,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     operationInProgress.current = true;
-    setLoading(true);
     setProfileError(null);
 
     try {
       console.log('[AUTH] Iniciando busca de perfil para usuário:', authUser.id);
       
+      // Buscar perfil com timeout mais curto (5 segundos)
       const profilePromise = fetchProfile(authUser.id);
       const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 30000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
       );
       
       let userProfile = await Promise.race([profilePromise, timeoutPromise])
         .catch(async (error) => {
-          console.warn('[AUTH] Erro ao buscar perfil:', error);
-          setRetryCount(prev => prev + 1);
-          
-          if (error.message === 'Profile fetch timeout' && retryCount < 2) {
-            console.log('[AUTH] Timeout na busca do perfil, tentando novamente...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            return await fetchProfile(authUser.id);
-          }
-          throw error;
+          console.warn('[AUTH] Erro ao buscar perfil, criando novo perfil...', error);
+          // Se houver erro ou timeout, criar perfil diretamente
+          return await createProfile({
+            id: authUser.id,
+            email: authUser.email || '',
+            nome_completo: authUser.user_metadata?.nome_completo || authUser.email?.split('@')[0] || 'Usuário',
+            telefone: authUser.user_metadata?.telefone,
+            data_criacao: new Date().toISOString(),
+            data_atualizacao: new Date().toISOString(),
+          });
         });
 
-      if (!userProfile && retryCount < 2) {
-        console.log('[AUTH] Perfil não encontrado, criando novo...');
+      // Se ainda não temos perfil, tentar criar
+      if (!userProfile) {
+        console.log('[AUTH] Criando novo perfil...');
         userProfile = await createProfile({
           id: authUser.id,
           email: authUser.email || '',
@@ -79,23 +80,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (userProfile) {
-        console.log('[AUTH] Perfil carregado com sucesso:', userProfile.id);
+        console.log('[AUTH] Perfil carregado/criado com sucesso:', userProfile.id);
         setProfile(userProfile);
         setProfileError(null);
         setRetryCount(0);
+        setLoading(false); // CRÍTICO: definir loading como false aqui
       } else {
-        throw new Error('Falha ao buscar ou criar o perfil do usuário.');
+        // Se ainda não conseguiu criar o perfil, definir um perfil básico para não bloquear
+        const basicProfile: Profile = {
+          id: authUser.id,
+          email: authUser.email || '',
+          nome_completo: authUser.user_metadata?.nome_completo || authUser.email?.split('@')[0] || 'Usuário',
+          telefone: authUser.user_metadata?.telefone || null,
+          plano_id: 'gratuito',
+          limite_calculos_salvos: 6,
+          limite_peticoes_salvas: 1,
+          data_criacao: new Date().toISOString(),
+          data_atualizacao: new Date().toISOString(),
+          data_assinatura: null,
+          periodo_assinatura: null,
+          status_assinatura: null,
+          stripe_customer_id: null,
+          subscription_id: null
+        };
+        console.log('[AUTH] Usando perfil básico temporário');
+        setProfile(basicProfile);
+        setProfileError(null);
+        setLoading(false);
       }
 
     } catch (e: any) {
       console.error('[AUTH] Erro na lógica de perfil:', e.message);
-      setProfileError(e instanceof Error ? e : new Error('Erro desconhecido ao buscar perfil'));
-      setProfile(null);
-    } finally {
+      // Mesmo com erro, não bloquear o login - criar perfil básico
+      const basicProfile: Profile = {
+        id: authUser.id,
+        email: authUser.email || '',
+        nome_completo: authUser.user_metadata?.nome_completo || authUser.email?.split('@')[0] || 'Usuário',
+        telefone: authUser.user_metadata?.telefone || null,
+        plano_id: 'gratuito',
+        limite_calculos_salvos: 6,
+        limite_peticoes_salvas: 1,
+        data_criacao: new Date().toISOString(),
+        data_atualizacao: new Date().toISOString(),
+        data_assinatura: null,
+        periodo_assinatura: null,
+        status_assinatura: null,
+        stripe_customer_id: null,
+        subscription_id: null
+      };
+      console.log('[AUTH] Erro no perfil, usando perfil básico');
+      setProfile(basicProfile);
+      setProfileError(null);
       setLoading(false);
+    } finally {
       operationInProgress.current = false;
     }
-  }, [fetchProfile, createProfile, retryCount]);
+  }, [fetchProfile, createProfile]);
   
   const checkSession = useCallback(async () => {
     if (operationInProgress.current) {
@@ -108,11 +148,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setProfileError(null);
 
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Timeout mais curto para verificação de sessão (3 segundos)
+      const { data: { session }, error: sessionError } = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Session check timeout')), 3000)
+        )
+      ]) as any;
       
       if (sessionError) throw sessionError;
 
       if (session?.user) {
+        console.log('[AUTH] Sessão encontrada, configurando usuário...');
         setUser(session.user as User);
         await handleProfileLogic(session.user);
       } else {
@@ -123,10 +170,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       console.error('[AUTH] Erro ao verificar sessão:', error);
-      setProfileError(error instanceof Error ? error : new Error(error.message));
+      // Não definir como erro crítico - apenas fazer logout silencioso
       setUser(null);
       setProfile(null);
       setLoading(false);
+      setProfileError(null);
     } finally {
       operationInProgress.current = false;
     }
@@ -148,9 +196,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('[AUTH] Evento de autenticação:', event);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('[AUTH] Login detectado, configurando usuário...');
           setUser(session.user as User);
           await handleProfileLogic(session.user);
         } else if (event === 'SIGNED_OUT') {
+          console.log('[AUTH] Logout detectado');
           setProfile(null);
           setUser(null);
           setProfileError(null);
@@ -170,17 +220,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [handleProfileLogic, checkSession]);
 
   const signIn = async (email: string, password: string) => {
-    let result: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
     try {
       setLoading(true);
-      result = await supabase.auth.signInWithPassword({ email, password });
+      console.log('[AUTH] Tentando fazer login...');
+      
+      const result = await supabase.auth.signInWithPassword({ email, password });
+      
       if (result.error) {
+        console.error('[AUTH] Erro no login:', result.error);
+        setLoading(false);
         toast.error(result.error.message);
         return { data: null, error: result.error };
       }
+      
+      console.log('[AUTH] Login bem-sucedido');
+      // Não definir loading como false aqui - deixar o handleProfileLogic fazer isso
       return { data: result.data, error: null };
-    } finally {
-      if (!result?.data?.user) setLoading(false);
+    } catch (error: any) {
+      console.error('[AUTH] Erro inesperado no login:', error);
+      setLoading(false);
+      return { data: null, error: { message: error.message } };
     }
   };
 

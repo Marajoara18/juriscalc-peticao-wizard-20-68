@@ -11,9 +11,9 @@ export const useProfileManager = () => {
     setError(null);
 
     try {
-      // Aumentar timeout para 20 segundos
+      // Timeout mais curto (3 segundos)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 20000)
+        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 3000)
       );
 
       const fetchPromise = supabase
@@ -47,7 +47,12 @@ export const useProfileManager = () => {
     };
 
     try {
-      const { data, error } = await supabase
+      // Timeout mais curto (3 segundos)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout ao criar perfil')), 3000)
+      );
+
+      const insertPromise = supabase
         .from('perfis')
         .insert({
           id: profileData.id,
@@ -60,6 +65,8 @@ export const useProfileManager = () => {
         })
         .select()
         .single();
+
+      const { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
 
       if (error) {
         // Ignora erro de perfil já existente e tenta buscar novamente
@@ -75,7 +82,8 @@ export const useProfileManager = () => {
     } catch (err: any) {
       console.error('[PROFILE_MANAGER] Erro ao criar perfil:', err.message);
       setError('Falha ao criar o perfil.');
-      return null;
+      // Se falhar ao criar, tentar buscar (talvez já exista)
+      return fetchProfile(profileData.id);
     }
   }, [fetchProfile]);
 
