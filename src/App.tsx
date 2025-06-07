@@ -24,22 +24,43 @@ const AppContent = () => {
   const isComponentMounted = useRef(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Inicialização segura
+  // Inicialização mais robusta
   useEffect(() => {
-    try {
-      console.log('[APP] Inicializando componente...');
-      setTimeout(() => {
+    console.log('[APP] Inicializando aplicação...');
+    
+    const initializeApp = () => {
+      try {
         if (isComponentMounted.current) {
+          console.log('[APP] Aplicação pronta para usar');
           setIsReady(true);
-          console.log('[APP] Aplicação pronta');
         }
-      }, 100);
-    } catch (err) {
-      console.error('[APP] Erro na inicialização:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    }
-  }, []);
+      } catch (err) {
+        console.error('[APP] Erro na inicialização:', err);
+        if (isComponentMounted.current) {
+          setError(err instanceof Error ? err.message : 'Erro desconhecido');
+        }
+      }
+    };
+
+    // Tentar inicializar imediatamente
+    initializeApp();
+
+    // Fallback: forçar inicialização após 2 segundos se ainda não estiver pronto
+    initTimeoutRef.current = setTimeout(() => {
+      if (isComponentMounted.current && !isReady) {
+        console.log('[APP] Forçando inicialização após timeout');
+        setIsReady(true);
+      }
+    }, 2000);
+
+    return () => {
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
+  }, [isReady]);
 
   // Cleanup no unmount
   useEffect(() => {
@@ -48,45 +69,32 @@ const AppContent = () => {
     };
   }, []);
 
-  // Error fallback
+  // Error fallback simplificado
   if (error) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', minHeight: '100vh' }}>
-        <h2>Erro na aplicação</h2>
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          style={{ padding: '10px 20px', fontSize: '16px' }}
-        >
-          Recarregar Sistema
-        </button>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold p-4">
+        <div className="text-center text-white max-w-md">
+          <h2 className="text-xl font-bold mb-4">Erro na aplicação</h2>
+          <p className="mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-white text-juriscalc-navy rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            Recarregar Sistema
+          </button>
+        </div>
       </div>
     );
   }
 
-  // Loading fallback
+  // Loading fallback melhorado
   if (!isReady) {
     return (
-      <div style={{ 
-        padding: '20px', 
-        textAlign: 'center', 
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        <h2>Carregando IusCalc...</h2>
-        <div style={{ marginTop: '20px' }}>
-          <div style={{ 
-            border: '4px solid #f3f3f3',
-            borderTop: '4px solid #1e40af',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            animation: 'spin 2s linear infinite',
-            margin: '0 auto'
-          }}></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Carregando IusCalc</h2>
+          <p className="text-sm opacity-75">Iniciando sistema...</p>
         </div>
       </div>
     );
@@ -195,8 +203,8 @@ const App = () => {
     defaultOptions: {
       queries: {
         retry: 1,
-        refetchOnWindowFocus: false, // Evita refetch automático ao voltar à aba
-        staleTime: 5 * 60 * 1000, // 5 minutos de cache
+        refetchOnWindowFocus: false,
+        staleTime: 5 * 60 * 1000,
       },
     },
   });

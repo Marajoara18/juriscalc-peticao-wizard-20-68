@@ -6,9 +6,6 @@ const ScriptErrorHandler = () => {
   useEffect(() => {
     console.log('[SCRIPT_ERROR_HANDLER] Iniciando proteção contra scripts problemáticos...');
 
-    // Variável para rastrear tempo de início
-    let startTime = Date.now();
-
     // Função para remover TODOS os scripts e iframes problemáticos
     const removeProblematicElements = () => {
       // Scripts conhecidos problemáticos
@@ -17,6 +14,7 @@ const ScriptErrorHandler = () => {
         'script[src*="doubleclick.net"]',
         'script[src*="google-analytics.com"]',
         'script[src*="netlify"]',
+        'script[src*="sidePanelUtil"]',
         'iframe[src*="doubleclick.net"]',
         'iframe[src*="googletagmanager"]',
         'iframe[allow*="join-ad-interest-group"]'
@@ -42,7 +40,9 @@ const ScriptErrorHandler = () => {
           'google-analytics',
           'gtag',
           'fbevents',
-          'netlify'
+          'netlify',
+          'sidepanelutil',
+          'starttime'
         ];
         
         const isProblematic = problematicKeywords.some(keyword => 
@@ -88,13 +88,13 @@ const ScriptErrorHandler = () => {
       });
     };
 
-    // Handler para erros de scripts externos
+    // Handler para erros de scripts externos mais robusto
     const handleScriptError = (event: ErrorEvent) => {
       const { error, filename, message } = event;
       
       console.log('[SCRIPT_ERROR_HANDLER] Erro detectado:', { message, filename });
 
-      // Lista de erros sempre ignorados
+      // Lista de erros sempre ignorados (expandida)
       const ignoredErrors = [
         'googletagmanager',
         'doubleclick',
@@ -102,13 +102,16 @@ const ScriptErrorHandler = () => {
         'gtag',
         'fbevents',
         'netlify',
-        'Script error',
-        'ResizeObserver loop limit exceeded',
-        'Network request failed',
-        'Loading chunk',
-        'Non-Error promise rejection',
-        'startTime is not defined',
-        'sidePanelUtil'
+        'script error',
+        'resizeobserver loop limit exceeded',
+        'network request failed',
+        'loading chunk',
+        'non-error promise rejection',
+        'starttime is not defined',
+        'sidepanelutil',
+        'facebook.com',
+        'twitter.com',
+        'instagram.com'
       ];
 
       const shouldIgnore = ignoredErrors.some(ignored => 
@@ -129,10 +132,12 @@ const ScriptErrorHandler = () => {
         timestamp: new Date().toISOString()
       });
 
-      return false;
+      // Sempre prevenir que o erro quebre a aplicação
+      event.preventDefault();
+      return true;
     };
 
-    // Handler para promises rejeitadas
+    // Handler para promises rejeitadas mais robusto
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
       
@@ -146,7 +151,9 @@ const ScriptErrorHandler = () => {
           'network error',
           'loading chunk',
           'starttime',
-          'sidepanelutil'
+          'sidepanelutil',
+          'facebook',
+          'twitter'
         ];
 
         const shouldIgnore = ignoredReasons.some(ignored => 
@@ -161,21 +168,23 @@ const ScriptErrorHandler = () => {
       }
 
       console.warn('[SCRIPT_ERROR_HANDLER] Promise rejection não crítica:', reason);
+      // Prevenir quebra da aplicação
+      event.preventDefault();
     };
 
     // Registrar handlers
-    window.addEventListener('error', handleScriptError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleScriptError, true);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection, true);
 
     // Remover elementos problemáticos imediatamente
     removeProblematicElements();
     removeUnusedPreloads();
 
-    // Remover elementos problemáticos a cada 5 segundos (menos agressivo)
+    // Remover elementos problemáticos periodicamente (menos agressivo)
     const cleanupInterval = setInterval(() => {
       removeProblematicElements();
       removeUnusedPreloads();
-    }, 5000);
+    }, 10000); // A cada 10 segundos
 
     // Observer para novos elementos adicionados
     const observer = new MutationObserver((mutations) => {
@@ -190,7 +199,8 @@ const ScriptErrorHandler = () => {
             if (src.includes('googletagmanager') || 
                 src.includes('doubleclick') ||
                 src.includes('netlify') ||
-                src.includes('facebook')) {
+                src.includes('facebook') ||
+                src.includes('sidepanelutil')) {
               needsCleanup = true;
             }
           }
@@ -210,8 +220,8 @@ const ScriptErrorHandler = () => {
 
     // Cleanup
     return () => {
-      window.removeEventListener('error', handleScriptError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleScriptError, true);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection, true);
       clearInterval(cleanupInterval);
       observer.disconnect();
     };
