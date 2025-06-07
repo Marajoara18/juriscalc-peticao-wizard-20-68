@@ -8,18 +8,18 @@ import { RegisterFormData } from '@/types/auth';
 
 interface RegisterFormProps {
   onSubmit: (data: RegisterFormData) => void;
+  disabled?: boolean;
 }
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, disabled = false }) => {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState(''); // Adicionado estado para telefone
+  const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmSenha, setConfirmSenha] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Incluir telefone no objeto de dados submetido
     onSubmit({ nome, email, telefone, senha, confirmSenha }); 
   };
 
@@ -43,6 +43,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
               placeholder="Seu nome completo"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
+              disabled={disabled}
               required
             />
           </div>
@@ -56,22 +57,22 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={disabled}
               required
             />
           </div>
-          {/* Campo de Telefone Adicionado */}
           <div className="space-y-2">
             <label htmlFor="telefone-cadastro" className="block text-sm font-medium">
               Telefone (WhatsApp)
             </label>
             <Input
               id="telefone-cadastro"
-              type="tel" // Usar type="tel" para semântica e potencial formatação móvel
+              type="tel"
               placeholder="(XX) XXXXX-XXXX"
               value={telefone}
               onChange={(e) => setTelefone(e.target.value)} 
-              // Opcional: Adicionar validação de formato ou máscara aqui ou no onChange
-              required // Definir como obrigatório se necessário
+              disabled={disabled}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -84,6 +85,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
               placeholder="Crie uma senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
+              disabled={disabled}
               required
             />
           </div>
@@ -97,12 +99,17 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
               placeholder="Confirme sua senha"
               value={confirmSenha}
               onChange={(e) => setConfirmSenha(e.target.value)}
+              disabled={disabled}
               required
             />
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90">
+          <Button 
+            type="submit" 
+            className="w-full bg-juriscalc-gold text-juriscalc-navy hover:bg-opacity-90"
+            disabled={disabled}
+          >
             <UserPlus className="mr-2 h-4 w-4" />
             Cadastrar
           </Button>
@@ -113,4 +120,3 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit }) => {
 };
 
 export default RegisterForm;
-

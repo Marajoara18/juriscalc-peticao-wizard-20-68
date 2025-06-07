@@ -13,7 +13,10 @@ interface AuthContextType {
   loading: boolean;
   profileError: Error | null;
   signIn: (email: string, password: string) => Promise<{ data: any; error: any; }>;
+  signUp: (email: string, password: string, nome: string, telefone?: string) => Promise<{ data: any; error: any; }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ data: any; error: any; }>;
+  setProfile: (profile: Profile | null) => void;
   isPremium: boolean;
   isAdmin: boolean;
   retryCount: number;
@@ -45,7 +48,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('[AUTH] Iniciando busca de perfil para usuário:', authUser.id);
       
-      // Aumentar timeout para 30 segundos
       const profilePromise = fetchProfile(authUser.id);
       const timeoutPromise = new Promise<null>((_, reject) => 
         setTimeout(() => reject(new Error('Profile fetch timeout')), 30000)
@@ -56,10 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.warn('[AUTH] Erro ao buscar perfil:', error);
           setRetryCount(prev => prev + 1);
           
-          // Se for timeout e ainda não tentamos muito, tentar novamente
           if (error.message === 'Profile fetch timeout' && retryCount < 2) {
             console.log('[AUTH] Timeout na busca do perfil, tentando novamente...');
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Aguardar 2s
+            await new Promise(resolve => setTimeout(resolve, 2000));
             return await fetchProfile(authUser.id);
           }
           throw error;
@@ -158,7 +159,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           operationInProgress.current = false;
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('[AUTH] Token renovado com sucesso');
-          // Não fazer nada especial, apenas log
         }
       }
     );
@@ -180,8 +180,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       return { data: result.data, error: null };
     } finally {
-      // O loading será controlado pelo handleProfileLogic
       if (!result?.data?.user) setLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, nome: string, telefone?: string) => {
+    try {
+      setLoading(true);
+      const result = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nome_completo: nome,
+            telefone: telefone
+          }
+        }
+      });
+      
+      if (result.error) {
+        toast.error(result.error.message);
+        return { data: null, error: result.error };
+      }
+      
+      return { data: result.data, error: null };
+    } catch (error: any) {
+      return { data: null, error: { message: error.message } };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -198,13 +224,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const result = await supabase.auth.resetPasswordForEmail(email);
+      if (result.error) {
+        toast.error(result.error.message);
+        return { data: null, error: result.error };
+      }
+      toast.success('Email de recuperação enviado!');
+      return { data: 'success', error: null };
+    } catch (error: any) {
+      return { data: null, error: { message: error.message } };
+    }
+  };
+
   const value = {
     user,
     profile,
     loading,
     profileError,
     signIn,
+    signUp,
     signOut,
+    resetPassword,
+    setProfile,
     isPremium: getIsPremium(profile),
     isAdmin: getIsAdmin(profile),
     retryCount,

@@ -57,10 +57,12 @@ export const useAuthRegister = () => {
       console.log('Usuário registrado no Supabase Auth com ID:', userId);
 
       const profileData = {
-        userId: userId,
-        nomeCompleto: data.nome,
+        id: userId,
         email: data.email,
+        nome_completo: data.nome,
         telefone: data.telefone,
+        data_criacao: new Date().toISOString(),
+        data_atualizacao: new Date().toISOString(),
       };
 
       const createdProfile = await createProfile(profileData);
@@ -86,7 +88,7 @@ export const useAuthRegister = () => {
 
   return {
     handleRegister,
-    register: handleRegister, // Alias para compatibilidade
+    register: handleRegister,
     loading
   };
 };
