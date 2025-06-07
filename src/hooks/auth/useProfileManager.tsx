@@ -3,36 +3,6 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from './types';
 
-<<<<<<< HEAD
-=======
-// Adiciona um estado para controlar tentativas de criação
-let createAttempted = false;
-
-// Define os limites aqui também para consistência na criação
-const PLANO_LIMITES = {
-  gratuito: {
-    calculos: 6, // Limite de cálculos salvos
-    peticoes: 1
-  },
-  premium: {
-    calculos: 999999,
-    peticoes: 999999
-  },
-  admin: {
-    calculos: 999999,
-    peticoes: 999999
-  }
-};
-
-// Define uma interface para os dados necessários para criar o perfil
-interface CreateProfileData {
-  userId: string;
-  nomeCompleto: string;
-  email: string;
-  telefone?: string; // Telefone é opcional na criação inicial
-}
-
->>>>>>> a2104ffb9d38ac6de5adbf01a86b20bcd9612e12
 export const useProfileManager = () => {
   const [error, setError] = useState<string | null>(null);
 
@@ -41,11 +11,18 @@ export const useProfileManager = () => {
     setError(null);
 
     try {
-      const { data, error } = await supabase
+      // Aumentar timeout para 20 segundos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout ao buscar perfil')), 20000)
+      );
+
+      const fetchPromise = supabase
         .from('perfis')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
       if (error) {
         throw error;
@@ -66,7 +43,7 @@ export const useProfileManager = () => {
 
     const PLANO_GRATUITO = {
       calculos: 6,
-      peticoes: 6
+      peticoes: 1
     };
 
     try {

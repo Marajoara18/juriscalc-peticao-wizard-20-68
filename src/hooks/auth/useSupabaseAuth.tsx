@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser } from '@supabase/supabase-js';
@@ -5,8 +6,6 @@ import { User, Profile } from './types';
 import { toast } from 'sonner';
 import { useProfileManager } from './useProfileManager';
 import { getIsPremium, getIsAdmin } from './authUtils';
-import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -21,45 +20,7 @@ interface AuthContextType {
   checkSession: () => Promise<void>;
 }
 
-<<<<<<< HEAD
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-=======
-  // Derived states
-  const isPremium = getIsPremium(profile);
-  const isAdmin = getIsAdmin(profile);
-  
-  // Monitorar mudanças no auth state para detectar desconexões
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[SUPABASE_AUTH] Auth state change:', event);
-      
-      if (event === 'SIGNED_OUT') {
-        console.log('[SUPABASE_AUTH] Usuário deslogado');
-        setUser(null);
-        setProfile(null);
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('[SUPABASE_AUTH] Token renovado com sucesso');
-        // Manter o usuário logado, apenas atualizar o token
-      } else if (event === 'SIGNED_IN' && session) {
-        console.log('[SUPABASE_AUTH] Usuário logado via auth state change');
-        // Este evento pode ser disparado pelo refresh, não precisamos reprocessar
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [setUser, setProfile]);
-  
-  console.log('SUPABASE_AUTH: Estado atual:', {
-    user: !!user,
-    profile: !!profile,
-    loading,
-    isPremium,
-    isAdmin,
-    planId: profile?.plano_id
-  });
->>>>>>> a2104ffb9d38ac6de5adbf01a86b20bcd9612e12
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -70,8 +31,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const { fetchProfile, createProfile } = useProfileManager();
   const operationInProgress = useRef(false);
-  const profileRef = useRef(profile);
-  profileRef.current = profile;
 
   const handleProfileLogic = useCallback(async (authUser: { id: string; email?: string; user_metadata: any; }) => {
     if (operationInProgress.current) {
@@ -85,23 +44,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       console.log('[AUTH] Iniciando busca de perfil para usuário:', authUser.id);
+      
+      // Aumentar timeout para 30 segundos
       const profilePromise = fetchProfile(authUser.id);
       const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 15000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 30000)
       );
       
       let userProfile = await Promise.race([profilePromise, timeoutPromise])
         .catch(async (error) => {
           console.warn('[AUTH] Erro ao buscar perfil:', error);
           setRetryCount(prev => prev + 1);
-          if (error.message === 'Profile fetch timeout') {
+          
+          // Se for timeout e ainda não tentamos muito, tentar novamente
+          if (error.message === 'Profile fetch timeout' && retryCount < 2) {
             console.log('[AUTH] Timeout na busca do perfil, tentando novamente...');
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Aguardar 2s
             return await fetchProfile(authUser.id);
           }
           throw error;
         });
 
-      if (!userProfile) {
+      if (!userProfile && retryCount < 2) {
         console.log('[AUTH] Perfil não encontrado, criando novo...');
         userProfile = await createProfile({
           id: authUser.id,
@@ -117,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('[AUTH] Perfil carregado com sucesso:', userProfile.id);
         setProfile(userProfile);
         setProfileError(null);
+        setRetryCount(0);
       } else {
         throw new Error('Falha ao buscar ou criar o perfil do usuário.');
       }
@@ -129,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       operationInProgress.current = false;
     }
-  }, [fetchProfile, createProfile]);
+  }, [fetchProfile, createProfile, retryCount]);
   
   const checkSession = useCallback(async () => {
     if (operationInProgress.current) {
@@ -153,14 +118,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log('[AUTH] Nenhuma sessão ativa');
         setUser(null);
         setProfile(null);
+        setLoading(false);
       }
     } catch (error: any) {
       console.error('[AUTH] Erro ao verificar sessão:', error);
       setProfileError(error instanceof Error ? error : new Error(error.message));
       setUser(null);
       setProfile(null);
-    } finally {
       setLoading(false);
+    } finally {
       operationInProgress.current = false;
     }
   }, [handleProfileLogic]);
@@ -188,7 +154,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
           setProfileError(null);
           setLoading(false);
+          setRetryCount(0);
           operationInProgress.current = false;
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[AUTH] Token renovado com sucesso');
+          // Não fazer nada especial, apenas log
         }
       }
     );
@@ -222,6 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setProfile(null);
       setProfileError(null);
+      setRetryCount(0);
     } finally {
       setLoading(false);
     }

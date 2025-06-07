@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSupabaseAuth } from '@/hooks/auth/useSupabaseAuth';
@@ -15,7 +16,7 @@ const ProtectedRoute = ({
   requireAuth = true, 
   requireAdmin = false 
 }: ProtectedRouteProps) => {
-  const { user, profile, loading, error, checkSession, retryCount } = useSupabaseAuth();
+  const { user, profile, loading, profileError, checkSession, retryCount } = useSupabaseAuth();
   const location = useLocation();
   const [showRetry, setShowRetry] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -34,13 +35,13 @@ const ProtectedRoute = ({
   }, []);
 
   useEffect(() => {
-    // Se houver erro ou não tiver usuário após o carregamento, mostrar botão de retry após 3 segundos
+    // Se houver erro ou não tiver usuário após o carregamento, mostrar botão de retry após 5 segundos
     let timeoutId: NodeJS.Timeout;
     
-    if (!loading && (!user || error) && requireAuth) {
+    if (!loading && (!user || profileError) && requireAuth) {
       timeoutId = setTimeout(() => {
         setShowRetry(true);
-      }, 3000);
+      }, 5000); // Aumentado para 5 segundos
     }
 
     return () => {
@@ -48,7 +49,7 @@ const ProtectedRoute = ({
         clearTimeout(timeoutId);
       }
     };
-  }, [loading, user, error, requireAuth]);
+  }, [loading, user, profileError, requireAuth]);
 
   const handleRetry = () => {
     setShowRetry(false);
@@ -69,12 +70,12 @@ const ProtectedRoute = ({
   }
 
   // Se houver erro de autenticação ou perfil
-  if (requireAuth && (error || (!user && showRetry))) {
+  if (requireAuth && (profileError || (!user && showRetry))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-juriscalc-blue via-juriscalc-navy to-juriscalc-gold">
         <div className="text-center text-white max-w-md mx-auto px-4">
           <div className="mb-4">
-            {error ? (
+            {profileError ? (
               <AlertCircle className="mx-auto h-16 w-16 text-red-400" />
             ) : !isOnline ? (
               <WifiOff className="mx-auto h-16 w-16 text-white animate-pulse" />
@@ -83,10 +84,10 @@ const ProtectedRoute = ({
             )}
           </div>
           <h2 className="text-xl font-medium mb-2">
-            {error ? 'Erro de Autenticação' : !isOnline ? 'Sem Conexão' : 'Problema de Conexão'}
+            {profileError ? 'Erro de Autenticação' : !isOnline ? 'Sem Conexão' : 'Problema de Conexão'}
           </h2>
           <p className="text-sm opacity-75 mb-4">
-            {error ? error : !isOnline 
+            {profileError ? profileError.message : !isOnline 
               ? 'Parece que você está sem conexão com a internet. Por favor, verifique sua conexão e tente novamente.' 
               : 'Parece que houve um problema ao verificar sua autenticação. Isso pode acontecer devido a uma conexão instável.'}
           </p>
@@ -141,10 +142,10 @@ const ProtectedRoute = ({
           <div className="mb-4">
             <RefreshCw className="mx-auto h-16 w-16 text-white animate-spin" />
           </div>
-          <h2 className="text-xl font-medium mb-2">Configurando seu perfil</h2>
+          <h2 className="text-xl font-medium mb-2">Carregando seu perfil</h2>
           <p className="text-sm opacity-75 mb-4">
             {retryCount === 0 
-              ? 'Estamos finalizando a configuração da sua conta. Isso pode levar alguns instantes.'
+              ? 'Estamos carregando os dados da sua conta. Isso pode levar alguns instantes.'
               : `Tentativa ${retryCount} de 3. Aguarde enquanto tentamos novamente...`}
           </p>
           <div className="space-y-2">
@@ -173,7 +174,7 @@ const ProtectedRoute = ({
           </div>
           {retryCount >= 3 && (
             <p className="text-sm text-red-300 mt-4">
-              Não foi possível configurar seu perfil após várias tentativas. Por favor, tente fazer login novamente.
+              Não foi possível carregar seu perfil após várias tentativas. Por favor, tente fazer login novamente.
             </p>
           )}
         </div>
