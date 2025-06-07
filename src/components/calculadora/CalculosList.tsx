@@ -30,19 +30,12 @@ const CalculosList: React.FC<CalculosListProps> = ({
 }) => {
   const { user, profile } = useSupabaseAuth();
   
-<<<<<<< HEAD
-  // Constante para o limite máximo de cálculos para usuários não premium - corrigido para 6
-  const LIMITE_CALCULOS = 6; // Alterado de 3 para 6
-  const isPremium = profile?.plano_id?.includes('premium') || profile?.plano_id === 'admin';
-  const calculosRestantes = isPremium ? 'Ilimitado' : Math.max(0, LIMITE_CALCULOS - calculosFiltrados.length);
-=======
   // Constante para o limite máximo de cálculos para usuários não premium
   const LIMITE_CALCULOS = 6;
   
   // Verificar se o usuário tem acesso ilimitado usando a função centralizada
   const hasUnlimited = hasUnlimitedAccess(profile, user?.email);
   const calculosRestantes = hasUnlimited ? 'Ilimitado' : Math.max(0, LIMITE_CALCULOS - calculosFiltrados.length);
->>>>>>> a2104ffb9d38ac6de5adbf01a86b20bcd9612e12
 
   return (
     <div>
